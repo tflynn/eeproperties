@@ -18,8 +18,11 @@ package net.olioinfo.eeproperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.URL;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -69,9 +72,19 @@ import java.util.Properties;
  * They should not be used in other cases or in production, since they cause performance degradation and
  * may generate a lot of output. These options apply to the whole package.</p>
  *
- * <ul><li>-Dnet.olioinfo.eeproperties.consoleTracing</li></ul>
+ * <ul><li>-Dnet.olioinfo.eeproperties.consoleTracing=true</li></ul>
  *
  * <p>Provide detailed tracing to the System.out device. Does not use logging. </p>
+ *
+ * <ul><li>-Dnet.olioinfo.eeproperties.bootstrapLogging=true</li></ul>
+ *
+ * <p>Provide detailed logging during bootstrap phase</p>
+ * 
+ * <ul><li>-Dnet.olioinfo.eeproperties.bootstrapLogging.configurationFile=[fully qualified file name]</li></ul>
+ *
+ * <p>Override the default bootstrap logging settings by providing a log4j configuration file at the specified location</p>
+ *
+ *
  *
  * @author Tracy Flynn
  * @version 2.0
@@ -83,6 +96,11 @@ public class EEProperties {
      * Singleton Logger instance
      */
     private static final Logger logger = LoggerFactory.getLogger(EEProperties.class);
+
+    /**
+     * Singleton bootstrap Logger instance
+     */
+    private static final Logger bootstrapLogger = LoggerFactory.getLogger(EEPropertiesBootstrapLogger.class);
 
 
     /**
@@ -100,6 +118,12 @@ public class EEProperties {
      * Console tracing state
     */
     private boolean consoleTracing = false;
+
+    /**
+     * Bootstrap logging state
+     */
+    private boolean bootstrapLogging = false;
+    
 
     
     /**
@@ -175,22 +199,58 @@ public class EEProperties {
      */
     private void initializeLogging(HashMap<String,String> options) {
         consoleTrace("EEproperties.initializeLogging: Entering...");
-        //eeproperties_log4j_bootstrap.properties
-        Properties log4jBootstrapProperties = new Properties();
-        try {
-            URL url = EEProperties.class.getResource(EEProperties.EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES);
-            if (url != null) {
-                InputStream is = url.openStream();
+
+        if (testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            this.bootstrapLogging = true;
+        }
+        if (testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            this.bootstrapLogging = true;
+        }
+
+        String bootstrapPropertiesFileName =  EEProperties.EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES;
+        if (this.bootstrapLogging) {
+            String overrideBootstrapPropertiesFileName = System.getProperty("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
+            if (overrideBootstrapPropertiesFileName != null) {
+                bootstrapPropertiesFileName = overrideBootstrapPropertiesFileName;
+            }
+            if ( (options != null ) && (options.get("net.olioinfo.eeproperties.bootstrapLogging.configurationFile") != null )) {
+                bootstrapPropertiesFileName = options.get("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
+            }
+        }
+        if (testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            this.bootstrapLogging = true;
+        }
+        if (testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            this.bootstrapLogging = true;
+        }
+
+
+        if (this.bootstrapLogging) {
+            Properties log4jBootstrapProperties = new Properties();
+            try {
+                InputStream is;
+                if (bootstrapPropertiesFileName.startsWith("/")) {
+                    is = new FileInputStream(bootstrapPropertiesFileName);
+                }
+                else {
+                    URL url = EEProperties.class.getResource(EEProperties.EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES);
+                    is = url.openStream();
+                }
                 log4jBootstrapProperties.load(is);
                 is.close();
                 org.apache.log4j.PropertyConfigurator.configure(log4jBootstrapProperties);
                 consoleTrace(String.format("EEproperties.initializeLogging: Bootstrap logging successfully configured using log4j settings %s",EEProperties.EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES));
-                logger.debug("Bootstrap logging successfully initialized");
+                if (this.consoleTracing) {
+                    dumpProperties(log4jBootstrapProperties,System.out);
+                }
+                if (this.bootstrapLogging) {
+                    bootstrapLogger.debug("Bootstrap logging successfully initialized");
+                }
             }
-        }
-        catch (Exception ex) {
-            consoleTrace(String.format("EEproperties.initializeLogging: exception %s",ex.toString()));
-            if (this.consoleTracing) ex.printStackTrace(System.out);
+            catch (Exception ex) {
+                consoleTrace(String.format("EEproperties.initializeLogging: exception %s",ex.toString()));
+                if (this.consoleTracing) ex.printStackTrace(System.out);
+            }
         }
     }
 
@@ -215,5 +275,19 @@ public class EEProperties {
      */
     private boolean testOption(HashMap<String,String> options , String optionName,String optionValue) {
         return ((options != null) && options.get(optionName) != null) && (options.get(optionName).equals(optionValue));
+    }
+
+    /**
+     * Dump all the properties in a Properties instance. Does not truncate property names or values
+     *
+     * @param properties Properties instance
+     * @param printStream Destination for output
+     *
+     */
+    private void dumpProperties(Properties properties, PrintStream printStream) {
+        for (Enumeration e = properties.propertyNames() ; e.hasMoreElements() ; ) {
+            String currentName = (String) e.nextElement();
+            printStream.println(String.format("%s = %s",currentName ,properties.get(currentName)));
+        }
     }
 }
