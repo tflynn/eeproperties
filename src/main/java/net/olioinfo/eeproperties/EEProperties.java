@@ -15,6 +15,7 @@
 package net.olioinfo.eeproperties;
 
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
@@ -136,36 +137,6 @@ public class EEProperties {
     private ArrayList<String> searchPathsList = new ArrayList<String>();
 
     
-    // Ensure EEProperties initializes
-    static {
-        EEProperties.singleton();
-    }
-    
-    /**
-     * Get the singleton instance
-     *
-     * @return Singleton EEProperties instance
-     */
-    public static EEProperties singleton() {
-        return EEProperties.instance;
-    }
-
-    /**
-     * Load the configuration files associated with the (root of the) specified package only.
-     *
-     * <p>For instance, for the EEProperties class  / package itself, the configuration would be loaded by specifying:</p>
-     * <pre>
-     * EEproperties.SLoadPackageConfiguration(EEProperties.class)
-     * </pre>
-     *
-     * @param klass Load the configuration associated with the specified class
-     * @throws Exception if any errors occur during load
-     */
-    public static synchronized void sLoadPackageConfiguration(Class klass) {
-            
-
-    }
-
     /**
      * Construct an instance of EEProperties
      */
@@ -183,6 +154,186 @@ public class EEProperties {
         initializeLogging(options);
         loadBootstrapFile(options);
     }
+
+    
+    
+    /**
+     * Get the singleton instance
+     *
+     * @return Singleton EEProperties instance
+     */
+    public static EEProperties singleton() {
+        return EEProperties.instance;
+    }
+
+    /**
+     * Load the configuration files associated with the (root of the) specified package only (for the singleton class).
+     *
+     * <p>For instance, for the EEProperties class  / package itself, the configuration would be loaded by specifying:</p>
+     * <pre>
+     * EEproperties.sLoadPackageConfiguration(EEProperties.class)
+     * </pre>
+     * 
+     * Also see the documentation for loadPackageConfiguration
+     *
+     * @param klass Load the configuration associated with the specified class
+     */
+    public static synchronized void sLoadPackageConfiguration(Class klass) {
+       EEProperties.singleton().loadPackageConfiguration(klass,null);
+    }
+
+    /**
+     * Load the configuration files associated with the (root of the) specified package only (for the singleton class).
+     *
+     * See the documentation for loadPackageConfiguration
+     *
+     * @param klass Load the configuration associated with the specified class
+     * @param options Hash of options
+     */
+    public static synchronized void sLoadPackageConfiguration(Class klass,HashMap<String,String> options) {
+       EEProperties.singleton().loadPackageConfiguration(klass,options);
+    }
+
+    /**
+     * Load the configuration files associated with the (root of the) specified package only.
+     *
+     *
+     * @param klass Load the configuration associated with the specified class
+     * @param options Hash of options
+     */
+    public synchronized void loadPackageConfiguration(Class klass,HashMap<String,String> options) {
+
+        ArrayList<String> names = new ArrayList<String>();
+        names.add("defaults");
+        names.add(this.runtimeEnvironment);
+        HashMap<String,String> combinedOptions = new HashMap<String,String>();
+        combinedOptions.put("net.olioinfo.eeproperties.configurationFile.prefix",null);
+        combinedOptions.put("net.olioinfo.eeproperties.configurationFile.suffix","-ee");
+        combinedOptions.put("net.olioinfo.eeproperties.configurationFile.extension","properties");
+        if (options != null) combinedOptions.putAll(options);
+
+        loadAndMergeConfigurations(names,klass,this.coreProperties,combinedOptions);
+    }
+
+
+    /**
+     * Load and merge configurations based on environment names, class location and other options
+     *
+     * <p>Environment names are a list of environment names, usually from the list [defaults,production,development,test[.
+     * File names will be constructed, and the files searched for and loaded if present in the order specified.</p>
+     *
+     * </p>The klass parameter specifies the klass used as the locator for the file within the search paths already configured.</p>
+     *
+     * <p>The properties object contains any configuration options already loaded.</p>
+     *
+     * <p>Options are optional and can specify rules for forming the name of the properties file. Options are:</p>
+     * <ul>
+     * <li>net.olioinfo.eeproperties.configurationFile.prefix</li>
+     * <li>net.olioinfo.eeproperties.configurationFile.suffix</li>
+     * <li>net.olioinfo.eeproperties.configurationFile.extension</li>
+     * </ul>
+     *
+     * <p>The format of the file name for the properties flle is '[prefix][environment][suffix].[extension]'.
+     * If any element is absent or null it is skipped when constructing the name.</p>
+     *
+     *
+     * @param environmentNames
+     * @param klass
+     * @param properties
+     * @param options
+     */
+    public void loadAndMergeConfigurations(ArrayList<String> environmentNames,Class klass, Properties properties,HashMap<String,String> options) {
+
+        //Check for addtional search paths in the options
+        if (options != null && options.containsKey("net.olioinfo.eeproperties.runtime.additionalConfigurationPaths")) {
+            this.searchPathsList.addAll(parseSearchPaths(options.get("net.olioinfo.eeproperties.runtime.additionalConfigurationPaths")));
+        }
+
+        
+
+        String prefix = options.containsKey("net.olioinfo.eeproperties.configurationFile.prefix") ? options.get("net.olioinfo.eeproperties.configurationFile.prefix") : null;
+        String suffix = options.containsKey("net.olioinfo.eeproperties.configurationFile.suffix") ? options.get("net.olioinfo.eeproperties.configurationFile.suffix") : null;
+        String extension = options.containsKey("net.olioinfo.eeproperties.configurationFile.extension") ? options.get("net.olioinfo.eeproperties.configurationFile.extension") : null;
+
+        for (String environmentName : environmentNames ) {
+            StringBuffer environmentFileNameBuf = new StringBuffer();
+            if (prefix != null ) environmentFileNameBuf.append(prefix);
+            if (environmentName != null ) environmentFileNameBuf.append(environmentName);
+            if (suffix != null) environmentFileNameBuf.append(suffix);
+            if (extension != null) environmentFileNameBuf.append(".").append(extension);
+            String environmentFileName = environmentFileNameBuf.toString();
+            logger.debug(String.format("EEProperties.loadAndMergeConfigurations checking for file %s.",environmentFileName));
+            loadPropertiesFromLocationsOrClass(properties,this.searchPathsList,environmentFileName,klass);
+        }
+        
+    }
+
+    /**
+     * Get a property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static String sGetProperty(String propertyName) {
+        return EEProperties.singleton().getProperty(propertyName);
+    }
+
+    /**
+     * Get a property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public String getProperty(String propertyName) {
+        return this.coreProperties.getProperty(propertyName);
+    }
+
+    /**
+     * Get a property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @param defaultValue Default value if property not found
+     * @return Property value or null if not found
+     */
+    public static String sGetProperty(String propertyName, String defaultValue) {
+        return EEProperties.singleton().getProperty(propertyName,defaultValue);
+    }
+
+    /**
+     * Get a property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @param defaultValue Default value if property not found
+     * @return Property value or null if not found
+     */
+    public String getProperty(String propertyName, String defaultValue) {
+        return this.coreProperties.getProperty(propertyName,defaultValue);
+    }
+
+
+    /**
+     * Put a property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPut(String propertyName, String propertyValue) {
+        EEProperties.singleton().put(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void put(String propertyName, String propertyValue) {
+        this.coreProperties.put(propertyName,propertyValue);
+    }
+
+
 
     /**
      * Initialize console tracing
@@ -285,14 +436,9 @@ public class EEProperties {
         String additionalPathsAsString = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
             "net.olioinfo.eeproperties.runtime.additionalConfigurationPaths",options,this.coreProperties,null);
 
-        if (additionalPathsAsString != null && additionalPathsAsString.length() > 0) {
-            String[] searchPaths = additionalPathsAsString.split(":");
-            for (int i = 0 ; i < searchPaths.length ; i++ ) {
-                searchPathsList.add(searchPaths[i]);
-                logger.debug(String.format("EEProperties.loadBootstrapFile adding search path %s",searchPaths[i]));
-            }
-        }
+        this.searchPathsList.addAll(parseSearchPaths(additionalPathsAsString));
     }
+
 
     /**
      * Test a System property
@@ -336,21 +482,23 @@ public class EEProperties {
             String propertyName, HashMap<String,String> options, Properties properties, String defaultValue  ) {
 
         String returnValue = defaultValue;
-        if (options != null && options.containsKey(propertyName)) {
-            returnValue = (String) options.get(propertyName);
-        }
-        else if (System.getProperty(propertyName) != null) {
-            returnValue = System.getProperty(propertyName);
-        }
-        else if (this.coreProperties.containsKey(propertyName)) {
+
+        if (this.coreProperties.containsKey(propertyName)) {
             returnValue = (String) properties.get(propertyName);
         }
 
+        if (System.getProperty(propertyName) != null) {
+            returnValue = System.getProperty(propertyName);
+        }
+
+        if (options != null && options.containsKey(propertyName)) {
+            returnValue = options.get(propertyName);
+        }
         return returnValue;
     }
 
     /**
-     * Load a properties file from a file or class relative
+     * Load a properties file from a file or relative to a class
      *
      * @param properties Properties file to update.
      * @param fileName File name to load. Ignored if null
@@ -370,11 +518,15 @@ public class EEProperties {
                 }
                 else {
                     if (fileName.startsWith("/")) {
-                        is = new FileInputStream(fileName);
+                        if ((new File(fileName).exists())) {
+                            is = new FileInputStream(fileName);
+                        }
                     }
                     else if (klass != null) {
                         URL url = klass.getResource(fileName);
-                        is = url.openStream();
+                        if (url != null) {
+                            is = url.openStream();
+                        }
                     }
                 }
                 if (is == null ) {
@@ -395,6 +547,82 @@ public class EEProperties {
         return returnStatus;
     }
 
+
+    /**
+     * Load a properties file from a list of locations or relative to a class
+     *
+     * @param properties Properties file to update.
+     * @param locations An array of absolute directory names
+     * @param fileName File name to load. Ignored if null
+     * @param klass Class to load file relative to. Ignored if null
+     * @return boolean true if loaded, false otherwise
+     */
+    private boolean loadPropertiesFromLocationsOrClass(Properties properties,ArrayList<String> locations, String fileName, Class klass) {
+
+        boolean fileFound = false;
+        for (String location : locations ) {
+            String fullFileName = String.format("%s/%s/%s",location,klass.getPackage().getName().replaceAll("\\.","/"),fileName);
+            if ((new File(fullFileName).exists())) {
+                InputStream is = null;
+                try {
+                    is = new FileInputStream(fullFileName);
+                    properties.load(is);
+                    is.close();
+                    fileFound = true;
+                    logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded class %s from %s",fileName,fullFileName));
+                }
+                catch (Exception ex) {
+                    logger.info(String.format("EEProperties.loadPropertiesFromLocationsOrClass Unable to load file %s",fileName));
+                }
+            }
+            if (fileFound) break;
+        }
+        if (! fileFound) {
+            if (klass != null) {
+                InputStream is = null;
+                try {
+                    URL url = klass.getResource(fileName);
+                    if (url != null) {
+                        is = url.openStream();
+                    }
+                    properties.load(is);
+                    is.close();
+                    fileFound = true;
+                    logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded file %s relative to class %s",fileName,klass.getName()));
+                }
+                catch (Exception ex) {
+                    logger.info(String.format("EEProperties.loadPropertiesFromLocationsOrClass Unable to load file %s relative to class %s",fileName,klass.getName()));
+                }
+            }
+        }
+        if (!fileFound) {
+            logger.error(String.format("EEProperties.loadPropertiesFromLocationsOrClass Unable to load file %s from anywhere",fileName));
+        }
+        return fileFound;
+    }
+    
+
+
+    /**
+     * Parse a list of colon-delimited search paths returning a list
+     *
+     * @param searchPaths Colon-delimeted list of search paths
+     * @return A list of search paths
+     */
+    private ArrayList<String> parseSearchPaths(String searchPaths) {
+        ArrayList<String> searchPathList = new ArrayList<String>();
+
+        if (searchPaths != null && searchPaths.length() > 0 ) {
+            String[] searchPathsArray = searchPaths.split(":");
+            for (int i = 0 ; i < searchPathsArray.length ; i++ ) {
+                searchPathsList.add(searchPathsArray[i]);
+                logger.debug(String.format("EEProperties.parseSearchPaths adding search path %s",searchPathsArray[i]));
+            }
+        }
+
+        return searchPathList;
+    }
+    
     /**
      * Run standalone for testing purposes
      */

@@ -18,6 +18,9 @@ package net.olioinfo.eeproperties;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
+import java.io.File;
+import java.util.HashMap;
+
 
 /**
  * TestNG class for EEProperties
@@ -34,4 +37,29 @@ public class EEPropertiesTest {
         // No actual test involved yet
         assert true;
     }
+
+    public void testLoad() {
+        HashMap<String,String> options = new HashMap<String,String>();
+        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+        EEProperties.singleton().loadPackageConfiguration(EEProperties.class,options);
+        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1").equals("value1");
+        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.2").equals("value3");
+    }
+
+    public void testLoadWithExternalPath() {
+        String configurationDirectory = "/Users/tracy/Everything/Activities/test-eeproperties-configurations";
+        // Fix this so test works on any machine
+        if ((new File(configurationDirectory)).exists()) {
+            HashMap<String,String> options = new HashMap<String,String>();
+            options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+            options.put("net.olioinfo.eeproperties.runtime.additionalConfigurationPaths",configurationDirectory);
+            EEProperties.singleton().loadPackageConfiguration(EEProperties.class,options);
+            assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1").equals("value1");
+            assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.2").equals("value4");
+        }
+        else {
+            assert true;
+        }
+    }
+
 }
