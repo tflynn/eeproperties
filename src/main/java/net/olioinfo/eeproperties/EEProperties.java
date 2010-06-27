@@ -15,14 +15,9 @@
 package net.olioinfo.eeproperties;
 
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.net.URL;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -68,6 +63,7 @@ import java.util.Properties;
  *  <li>Since all properties share the same root, the names of properties themselves must be distinct</li>
  * </ul>
  *
+
  * <p>The following JVM options are available for use in debugging and isolating problems during initialization.
  * They should not be used in other cases or in production, since they cause performance degradation and
  * may generate a lot of output. These options apply to the whole package.</p>
@@ -83,6 +79,10 @@ import java.util.Properties;
  * <ul><li>-Dnet.olioinfo.eeproperties.bootstrapLogging.configurationFile=[fully qualified file name]</li></ul>
  *
  * <p>Override the default bootstrap logging settings by providing a log4j configuration file at the specified location</p>
+
+ * <h3>Exception handling</h3>
+ * <p>No methods return exceptions. Instead, exceptions will be logged. So, if something doesn't appear to be working
+ * correctly, enable some of the options listed above, and enable general logging to isolate the problem.<p>
  *
  *
  *
@@ -93,20 +93,18 @@ import java.util.Properties;
 public class EEProperties {
 
     /**
-     * Singleton Logger instance
-     */
-    private static final Logger logger = LoggerFactory.getLogger(EEProperties.class);
-
-    /**
-     * Singleton bootstrap Logger instance
-     */
-    private static final Logger bootstrapLogger = LoggerFactory.getLogger(EEPropertiesBootstrapLogger.class);
-
-
-    /**
      * EEProperties bootstrap log4j settings
      */
-    private static final String EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES = "eeproperties_log4j_bootstrap.properties";
+    private static final String LOGJ4_BOOTSTRAP_PROPERTIES = "eeproperties_log4j_bootstrap.properties";
+
+    /**
+     * <p>Fullly qualified name of core properties file</p>
+     *
+     * <p>This setting may be overridden with the system property
+     * net.olioinfo.eeproperties.coreConfigurationFileName</p>
+     */
+    private static final String CORE_CONFIGURATION_FILE_NAME_FQ = "net/olioinfo/eeproperties/eeproperties-bootstrap.properties";
+
 
     /**
      * Singleton instance of EEProperites
@@ -115,16 +113,15 @@ public class EEProperties {
 
 
     /**
-     * Console tracing state
-    */
-    private boolean consoleTracing = false;
+     * AvailableLogger instance
+     */
+    private AvailableLogger logger = new AvailableLogger();
+
 
     /**
-     * Bootstrap logging state
+     * Properties object that hold all properties
      */
-    private boolean bootstrapLogging = false;
-    
-
+    private Properties AllProperties = new Properties();
     
     /**
      * Get the singleton instance
@@ -146,7 +143,7 @@ public class EEProperties {
      * @param klass Load the configuration associated with the specified class
      * @throws Exception if any errors occur during load
      */
-    public static synchronized void sLoadPackageConfiguration(Class klass) throws Exception {
+    public static synchronized void sLoadPackageConfiguration(Class klass) {
             
 
     }
@@ -166,6 +163,7 @@ public class EEProperties {
     public EEProperties(HashMap<String,String> options) {
         initializeConsoleTracing(options);
         initializeLogging(options);
+        loadBootstrapFile(options);
     }
 
     /**
@@ -174,23 +172,17 @@ public class EEProperties {
      * @param options Hash of options
      */
     private void initializeConsoleTracing(HashMap<String,String> options) {
+        boolean consoleTracing = false;
+
         if (testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
-            this.consoleTracing = true;
+            consoleTracing = true;
         }
         if (testOption(options,"net.olioinfo.eeproperties.consoleTracing","true")) {
-            this.consoleTracing = true;
+            consoleTracing = true;
         }
+        logger.setConsoleTracing(consoleTracing);
     }
 
-
-    /**
-     * Log a console tracing message (if console tracing is enabled)
-     *
-     * @param msg Message to trace
-     */
-    private void consoleTrace(String msg) {
-        if (this.consoleTracing) System.out.println("consoleTrace: " + msg);
-    }
 
     /**
      * Initialize bootstrap logging
@@ -198,17 +190,19 @@ public class EEProperties {
      * @param options Options hash
      */
     private void initializeLogging(HashMap<String,String> options) {
-        consoleTrace("EEproperties.initializeLogging: Entering...");
+        logger.debug("EEproperties.initializeLogging: Entering...");
+
+        boolean bootstrapLogging = false;
 
         if (testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
-            this.bootstrapLogging = true;
+            bootstrapLogging = true;
         }
         if (testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
-            this.bootstrapLogging = true;
+            bootstrapLogging = true;
         }
 
-        String bootstrapPropertiesFileName =  EEProperties.EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES;
-        if (this.bootstrapLogging) {
+        String bootstrapPropertiesFileName =  EEProperties.LOGJ4_BOOTSTRAP_PROPERTIES;
+        if (bootstrapLogging) {
             String overrideBootstrapPropertiesFileName = System.getProperty("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
             if (overrideBootstrapPropertiesFileName != null) {
                 bootstrapPropertiesFileName = overrideBootstrapPropertiesFileName;
@@ -217,41 +211,32 @@ public class EEProperties {
                 bootstrapPropertiesFileName = options.get("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
             }
         }
-        if (testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
-            this.bootstrapLogging = true;
-        }
-        if (testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
-            this.bootstrapLogging = true;
-        }
 
 
-        if (this.bootstrapLogging) {
+        if (bootstrapLogging) {
             Properties log4jBootstrapProperties = new Properties();
-            try {
-                InputStream is;
-                if (bootstrapPropertiesFileName.startsWith("/")) {
-                    is = new FileInputStream(bootstrapPropertiesFileName);
-                }
-                else {
-                    URL url = EEProperties.class.getResource(EEProperties.EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES);
-                    is = url.openStream();
-                }
-                log4jBootstrapProperties.load(is);
-                is.close();
+            boolean loaded = loadPropertiesFromFileOrClass(log4jBootstrapProperties,bootstrapPropertiesFileName,EEProperties.class);
+            if (loaded) {
                 org.apache.log4j.PropertyConfigurator.configure(log4jBootstrapProperties);
-                consoleTrace(String.format("EEproperties.initializeLogging: Bootstrap logging successfully configured using log4j settings %s",EEProperties.EEPROPERTIES_LOGJ4_BOOTSTRAP_PROPERTIES));
-                if (this.consoleTracing) {
-                    dumpProperties(log4jBootstrapProperties,System.out);
-                }
-                if (this.bootstrapLogging) {
-                    bootstrapLogger.debug("Bootstrap logging successfully initialized");
-                }
+                logger.debug(String.format("EEproperties.initializeLogging: Bootstrap logging successfully configured using log4j settings %s",bootstrapPropertiesFileName));
+                logger.dumpProperties("trace",log4jBootstrapProperties);
+                logger.setBootstrapLogging(true);
+                logger.debug("EEproperties.initializeLogging: Bootstrap logging successfully initialized");
             }
-            catch (Exception ex) {
-                consoleTrace(String.format("EEproperties.initializeLogging: exception %s",ex.toString()));
-                if (this.consoleTracing) ex.printStackTrace(System.out);
+            else {
+                logger.error("EEproperties.initializeLogging: error initializing bootstrap logging");
             }
         }
+    }
+
+    /**
+     * Load the EEProperties bootstrap file
+     *
+     * @param options Hash of options
+     */
+    private void loadBootstrapFile(HashMap<String,String> options) {
+                
+
     }
 
     /**
@@ -277,17 +262,50 @@ public class EEProperties {
         return ((options != null) && options.get(optionName) != null) && (options.get(optionName).equals(optionValue));
     }
 
+
     /**
-     * Dump all the properties in a Properties instance. Does not truncate property names or values
+     * Load a properties file from a file or class relative
      *
-     * @param properties Properties instance
-     * @param printStream Destination for output
-     *
+     * @param properties Properties file to update.
+     * @param fileName File name to load. Ignored if null
+     * @param klass Class to load file relative to. Ignored if null
+     * @return boolean true if loaded, false otherwise
      */
-    private void dumpProperties(Properties properties, PrintStream printStream) {
-        for (Enumeration e = properties.propertyNames() ; e.hasMoreElements() ; ) {
-            String currentName = (String) e.nextElement();
-            printStream.println(String.format("%s = %s",currentName ,properties.get(currentName)));
+    private boolean loadPropertiesFromFileOrClass(Properties properties,String fileName, Class klass) {
+        boolean returnStatus = false;
+        if (properties == null) {
+            logger.error(String.format("EEProperties.loadPropertiesFromFileOrClass no Properties instance specified"));
         }
+        else {
+            try {
+                InputStream is = null;
+                if (fileName == null) {
+                    logger.error(String.format("EEProperties.loadPropertiesFromFileOrClass no file name specified"));
+                }
+                else {
+                    if (fileName.startsWith("/")) {
+                        is = new FileInputStream(fileName);
+                    }
+                    else if (klass != null) {
+                        URL url = klass.getResource(fileName);
+                        is = url.openStream();
+                    }
+                }
+                if (is == null ) {
+                    logger.error(String.format("EEProperties.loadPropertiesFromFileOrClass input stream not created. Check file name and location"));
+                }
+                else {
+                    properties.load(is);
+                    is.close();
+                    returnStatus = true;
+                }
+            }
+            catch (Exception ex) {
+                returnStatus = false;
+                logger.setBootstrapLogging(false);
+                logger.error(String.format("EEProperties.loadPropertiesFromFileOrClass: exception %s",ex.toString()),ex);
+            }
+        }
+        return returnStatus;
     }
 }

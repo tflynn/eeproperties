@@ -22,4 +22,5 @@ package net.olioinfo.eeproperties;
  * @since Jun 27, 2010
  */
 public class EEPropertiesBootstrapLogger {
+
 }
