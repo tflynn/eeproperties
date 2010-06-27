@@ -17,7 +17,6 @@ package net.olioinfo.eeproperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintStream;
 import java.util.Enumeration;
 import java.util.Properties;
 
@@ -37,7 +36,7 @@ import java.util.Properties;
  * @author Tracy Flynn
  * @since Jun 27, 2010
  */
-public class AvailableLogger {
+public class EEPropertiesAvailableLogger {
 
 
     /**
@@ -67,9 +66,9 @@ public class AvailableLogger {
 
 
     /**
-     * Create an AvailableLogger instance
+     * Create an EEPropertiesAvailableLogger instance
      */
-    public AvailableLogger() {
+    public EEPropertiesAvailableLogger() {
 
     }
 

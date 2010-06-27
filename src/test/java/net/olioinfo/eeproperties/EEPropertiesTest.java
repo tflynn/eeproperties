@@ -62,4 +62,13 @@ public class EEPropertiesTest {
         }
     }
 
+    public void testDefaultLoad() {
+        HashMap<String,String> options = new HashMap<String,String>();
+        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+        EEProperties.sLoadPackageConfiguration(EEProperties.class,options);
+        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1").equals("value1");
+        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.2").equals("value3");
+    }
+
+
 }

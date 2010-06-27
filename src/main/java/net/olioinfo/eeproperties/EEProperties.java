@@ -115,9 +115,9 @@ public class EEProperties {
 
 
     /**
-     * AvailableLogger instance
+     * EEPropertiesAvailableLogger instance
      */
-    private AvailableLogger logger = new AvailableLogger();
+    private EEPropertiesAvailableLogger logger = new EEPropertiesAvailableLogger();
 
 
     /**
