@@ -1,0 +1,7 @@
+
+h3. Introduction
+
+p. An earlier version of EEProperties has been renamed EEProperties-V1. This version of EEProperties (Version 2) is a total rewrite, and is not compatible with EEProperties V1, though most of the API will be similar. Usually, just renaming calls will be all that's needed to upgrade.
+
+p. EEProperties is the main class for the EEProperties package. The package provides a simple, consistent approach to configuration based on run-time environments while allowing configuration files to be managed or overridden externally to the application.
+
