@@ -23,7 +23,7 @@ import java.util.HashMap;
 
 
 /**
- * TestNG class for EEProperties
+ * TestNG test suite for EEProperties
  *
  * @author Tracy Flynn
  * @since Jun 27, 2010
@@ -46,6 +46,14 @@ public class EEPropertiesTest {
         assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.2").equals("value3");
     }
 
+    public void testDefaultLoad() {
+        HashMap<String,String> options = new HashMap<String,String>();
+        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+        EEProperties.sLoadPackageConfiguration(EEProperties.class,options);
+        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1").equals("value1");
+        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.2").equals("value3");
+    }
+    
     public void testLoadWithExternalPath() {
         String configurationDirectory = "/Users/tracy/Everything/Activities/test-eeproperties-configurations";
         // Fix this so test works on any machine
@@ -62,13 +70,6 @@ public class EEPropertiesTest {
         }
     }
 
-    public void testDefaultLoad() {
-        HashMap<String,String> options = new HashMap<String,String>();
-        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
-        EEProperties.sLoadPackageConfiguration(EEProperties.class,options);
-        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1").equals("value1");
-        assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.2").equals("value3");
-    }
 
 
 }

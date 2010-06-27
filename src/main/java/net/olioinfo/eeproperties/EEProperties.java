@@ -25,66 +25,114 @@ import java.util.Properties;
 
 
 /**
- * <p>EEProperties is the main class for the EEProperties package. The package provides a simple, consistent
- * approach to providing multiple environments and to per-component configuration while allowing configuration files to be managed or overridden externally to the
- * component or application.</p>
+ * <p>The EEProperties package provides a simple, consistent
+ * approach to providing multiple environments and per-component configuration while allowing configuration files to be
+ * managed or overridden externally to the component or application.</p>
  *
- * <p>The simplest usage is:</p>
+ * <h3>Basic usage</h3>
+ * <pre>
+ * EEProperties.sLoadPackageConfiguration(some.class);
+ * </pre>
+ *
+ * <p>This will load the files "defaults-ee.properties' and 'development-ee.properties' if present in that order from the same
+ * location as the class 'some.class' loaded. The merged properties will then be accessible using a call similar to the following:</p>
+ * <pre>
+ * EEProperties.get("com.mysite.some.property.name");
+ * </pre>
+ *
+ * <p>The default names for the configuration files are:</p>
  * <ul>
- *   <li>EEProperties.loadAll(&lt;path list&gt;); - to load all the configuration files from the list of paths specified</li>
- *     <ul><li>Path list is an ArrayList&lt;String&gt; object</li></ul>
- *   <li>EEProperties.get("com.mysite.some.property.name");</li>
+ * <li>defaults-ee.properties</ii>
+ * <li>production-ee.properties</li>
+ * <li>development-ee.properties</li>
+ * <li>test-ee.properties</li>
  * </ul>
  *
- * <p>For configurations in a servlet container, the easiest alternative is the following:</p>
- * <ul>
- *   <li>Create an external configuration tree and bootstrap configuration file</lI>
- *   <li>Set the additional load paths in the boostrap configuration to point to the external configuration tree</li>
- *   <li>Place all the additional configuration information - usually just production settings - in the configuration tree</li>
- *   <li>See EEPropertiesConfiguration documentation for further information on the boostrap configuration file</li>
- * </ul>
+ * The 'defaults-ee.properties' is always loaded first if available. Then one of the other files depending on the
+ * setting for the runtime environment. The default environment 'development' is set in the (internal) bootstrap file. See the discussion
+ * about the bootstrap file below for the recommended way to override the runtime environment settings.</p>
+ *  
+ * <h3>External configuration</h3>
  *
- * <p>The model supports standard Java properties file syntax. Some of the standard Java Properties class methods
- * may be accessed via EEProperties.getInstance(). E.g. EEProperties.getInstance().getProperties(setting,default). </p>
+ * <p>To use the external configuration option (the real reason for the existence of EEProperties),
+ * create a directory structure with a sub-directory structure that mirrors the package hierarchy for the
+ * package(s) whose  configurations are to be managed.</p>
  *
- * <p>EEProperties provides a mechanism for loading multiple set of Java properties files based on certain conventions.<p>
- * <ul>
- *   <li>Managed files have names of the form [environment]-ee.properties</li>
- *   <li>Environment represents one of the strings 'defaults','production','development','test'</li>
- *   <li>In any set of files, the 'defaults' file is always guaranteed to be loaded before any other</li>
- *   <li>Then the environmet-specific files are loaded, usually based on the setting in the bootstrap configuration file
- *       or 'development' by default</li>
- *   <li>Later values of particular properties override earlier values</li>
- *   <li>Properties loaded through this mechanism all share the same root (namespace)</li>
- *   <li>A bootstrap configuration is loaded first to get things off the ground (this can be overridden).
- *       See EEPropertiesConfiguration documentation for further information.</li>
- * </ul>
  *
- * <p>Note particularly:</p>
- * <ul>
- *  <li>Since all properties share the same root, the names of properties themselves must be distinct</li>
- * </ul>
+ * <p>For example, the directory structure used to test the net.olioinfo.eeproperties package looks like:</p>
+ * <pre>
  *
-
+ * Top level directory
+ *
+ * ~/test-eeproperties-configurations
+ *
+ * Directory tree
+ *
+ * ~/test-eeproperties-configurations/net
+ * ~/test-eeproperties-configurations/net/olioinfo/eeproperties
+ * ~/test-eeproperties-configurations/net/olioinfo/eeproperties/eeproperties-bootstrap.properties
+ * ~/test-eeproperties-configurations/net/olioinfo/eeproperties/tdevelopment-ee.properties
+ * ~/test-eeproperties-configurations/net/olioinfo/eeproperties/production-ee.properties
+ * </pre>
+ *
+ * <p>Then, tell EEProperties to bootstrap using the specified 'eeproperties-bootstrap.properties' file.
+ * Specify the JVM option as below:</p>
+ * <pre>
+ * -Dnet.olioinfo.eeproperties.bootstrap.fileName=/Users/johndoe/test-eeproperties-configurations/net/olioinfo/eeproperties/eeproperties-bootstrap.properties
+ * </pre>
+ *
+ * <p>Finally, in the bootstrap file itself ("eeproperties-bootstrap.properties"), tell EEProperties where to find
+ * all of the other configuration files. This will usually be the same directory tree containing the bootstrap
+ * file, but need not be.</p>
+ *
+ * <pre>
+ *
+ * Sample "eeproperties-bootstrap.properties" contents
+ *
+ * net.olioinfo.eeproperties.runtime.environment = development
+ * net.olioinfo.eeproperties.runtime.additionalConfigurationPaths = /Users/johndoe/test-eeproperties-configurations
+ * </pre>
+ *
+ *
+ * <h3>Servlet configuration</h3>
+ *
+ * <p>Servlet configuration is no different from standard usage. The loading relative to classes in a JAR functions
+ * as expected, and configuration settings can be overridden as explained above, by using the appropriate JVM
+ * option when starting the servlet container. For example, for Tomcat:</p>
+ *
+ * <pre>
+ * export CATALINA_OPTS="-Dnet.olioinfo.eeproperties.bootstrap.fileName=/Users/johndoe/test-eeproperties-configurations/net/olioinfo/eeproperties/eeproperties-bootstrap.properties ${CATALINA_OPTS}"
+ * </pre>
+ *
+ * <h3>Caution</h3>
+ * <p>All properties are loaded in the same context, so the names of the properties themselves must be distinct.</p>
+ *
+ * <h3>Additional information</h3>
+ *
+ * <p>The load process implied by a phrase similar to "EEProperties.sLoadPackageConfiguration(some.class)" is
+ * thread-safe and can be invoked as many times as needed to reload settings for one or more packages.</p>
+ *
  * <p>The following JVM options are available for use in debugging and isolating problems during initialization.
  * They should not be used in other cases or in production, since they cause performance degradation and
  * may generate a lot of output. These options apply to the whole package.</p>
  *
+ * <p>To provide detailed tracing to the System.out device, specify the following: (Does not use logging) </p>
+ *
  * <ul><li>-Dnet.olioinfo.eeproperties.consoleTracing=true</li></ul>
  *
- * <p>Provide detailed tracing to the System.out device. Does not use logging. </p>
+ * <p>To provide detailed logging during the bootstrap phase specify the following:</p>
  *
  * <ul><li>-Dnet.olioinfo.eeproperties.bootstrapLogging=true</li></ul>
  *
- * <p>Provide detailed logging during bootstrap phase</p>
- * 
+ * <p>To override the default bootstrap logging settings by providing a log4j configuration file at the specified
+ * location, specify the following:</p>
+ *
  * <ul><li>-Dnet.olioinfo.eeproperties.bootstrapLogging.configurationFile=[fully qualified file name]</li></ul>
  *
- * <p>Override the default bootstrap logging settings by providing a log4j configuration file at the specified location</p>
 
  * <h3>Exception handling</h3>
- * <p>No methods return exceptions. Instead, exceptions will be logged. So, if something doesn't appear to be working
- * correctly, enable some of the options listed above, and enable general logging to isolate the problem.<p>
+ * <p>No methods throw exceptions. Instead, exceptions will be logged. So, if something doesn't appear to be working
+ * correctly, enable some of the logging options listed above to isolate the problem.</p>
  *
  *
  *
