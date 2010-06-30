@@ -317,6 +317,42 @@ public class EEProperties {
     }
 
     /**
+     * Load and merge configurations based on environment names, class location and other options
+     *
+     * <p>Environment names are a list of environment names, usually from the list [defaults,production,development,test[.
+     * File names will be constructed, and the files searched for and loaded if present in the order specified.</p>
+     *
+     * </p>The klass parameter specifies the klass used as the locator for the file within the search paths already configured.</p>
+     *
+     * <p>The properties object contains any configuration options already loaded.</p>
+     *
+     * <p>Options are optional and can specify rules for forming the name of the properties file. Options are:</p>
+     * <ul>
+     * <li>net.olioinfo.eeproperties.configurationFile.prefix</li>
+     * <li>net.olioinfo.eeproperties.configurationFile.suffix</li>
+     * <li>net.olioinfo.eeproperties.configurationFile.extension</li>
+     * </ul>
+     *
+     * <p>The format of the file name for the properties flle is '[prefix][environment][suffix].[extension]'.
+     * If any element is absent or null it is skipped when constructing the name.</p>
+     *
+     *
+     * @param klass
+     * @param properties
+     * @param options
+     */
+    public void loadAndMergeConfigurations(Class klass, Properties properties,HashMap<String,String> options) {
+
+
+        ArrayList<String> names = new ArrayList<String>();
+        names.add("defaults");
+        names.add(this.runtimeEnvironment);
+
+        loadAndMergeConfigurations(names,klass,properties,options);
+
+    }
+
+    /**
      * Get a property setting  (for the singleton class)
      *
      * @param propertyName Property Name to retrieve
