@@ -19,6 +19,8 @@ import org.testng.Assert;
 import org.testng.annotations.*;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 
 
@@ -53,7 +55,7 @@ public class EEPropertiesTest {
         assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1").equals("value1");
         assert EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.2").equals("value3");
     }
-    
+
     public void testLoadWithExternalPath() {
         String configurationDirectory = "/Users/tracy/Everything/Activities/test-eeproperties-configurations";
         // Fix this so test works on any machine
@@ -70,6 +72,68 @@ public class EEPropertiesTest {
         }
     }
 
+    public void testConvertObjectTypes() {
+        HashMap<String,String> options = new HashMap<String,String>();
+        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+        EEProperties.sLoadPackageConfiguration(EEProperties.class,options);
+        Integer testInteger = EEProperties.sGetIntegerProperty("net.olioinfo.eeproperties.test.value.10");
+        if (testInteger != null) {
+            assert testInteger.equals(new Integer(123));
+        }
+        Short testShort = EEProperties.sGetShortProperty("net.olioinfo.eeproperties.test.value.11");
+        if (testShort != null) {
+            assert testShort.equals(new Short("321"));
+        }
+        Long testLong = EEProperties.sGetLongProperty("net.olioinfo.eeproperties.test.value.12");
+        assert testLong.equals(12345678901L);
+        Byte testByte = EEProperties.sGetByteProperty("net.olioinfo.eeproperties.test.value.13");
+        if  (testByte != null) {
+            assert testByte.equals(new Byte((byte) 27));
+        }
+        Float testFloat = EEProperties.sGetFloatProperty("net.olioinfo.eeproperties.test.value.14");
+        if (testFloat != null) {
+            assert testFloat.equals(new Float("123.456"));
+        }
+        Double testDouble = EEProperties.sGetDoubleProperty("net.olioinfo.eeproperties.test.value.15");
+        if (testDouble != null) {
+            assert testDouble.equals(new Double("234.567"));          
+        }
+        Boolean testBoolean;
+        testBoolean = EEProperties.sGetBooleanProperty("net.olioinfo.eeproperties.test.value.16");
+        if (testBoolean != null) {
+            assert testBoolean.equals(Boolean.TRUE);
+            assert testBoolean.equals(new Boolean("true"));
+        }
+        testBoolean = EEProperties.sGetBooleanProperty("net.olioinfo.eeproperties.test.value.17");
+        if (testBoolean != null) {
+            assert testBoolean.equals(Boolean.FALSE);
+            assert testBoolean.equals(new Boolean("false"));
+        }
 
+        Date testDate;
+        Date dateToMatch;
+        testDate = EEProperties.sGetDateProperty("net.olioinfo.eeproperties.test.value.18");
+        if (testDate != null) {
+            try {
+                dateToMatch = (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")).parse("2001-07-04T12:08:56-0500");
+                assert testDate.equals(dateToMatch);
+            }
+            catch (Exception ex) {
+                assert false;
+            }
+        }
+
+        testDate = EEProperties.sGetDateProperty("net.olioinfo.eeproperties.test.value.19");
+        if (testDate != null) {
+            try {
+                dateToMatch = (new SimpleDateFormat("yyyy-MM-dd")).parse("2001-07-04");
+                assert testDate.equals(dateToMatch);
+            }
+            catch (Exception ex) {
+                assert false;
+            }
+        }
+
+    }
 
 }

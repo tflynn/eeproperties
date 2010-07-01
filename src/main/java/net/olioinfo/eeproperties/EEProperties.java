@@ -19,9 +19,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Properties;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -55,7 +56,7 @@ import java.util.Properties;
  * <h3>External configuration</h3>
  *
  * <p>To use the external configuration option (the real reason for the existence of EEProperties),
- * create a directory structure with a sub-directory structure that mirrors the package hierarchy for the
+ * create a directory with a sub-directory structure that mirrors the package hierarchy for the
  * package(s) whose  configurations are to be managed.</p>
  *
  *
@@ -71,7 +72,7 @@ import java.util.Properties;
  * ~/test-eeproperties-configurations/net
  * ~/test-eeproperties-configurations/net/olioinfo/eeproperties
  * ~/test-eeproperties-configurations/net/olioinfo/eeproperties/eeproperties-bootstrap.properties
- * ~/test-eeproperties-configurations/net/olioinfo/eeproperties/tdevelopment-ee.properties
+ * ~/test-eeproperties-configurations/net/olioinfo/eeproperties/development-ee.properties
  * ~/test-eeproperties-configurations/net/olioinfo/eeproperties/production-ee.properties
  * </pre>
  *
@@ -91,6 +92,7 @@ import java.util.Properties;
  *
  * net.olioinfo.eeproperties.runtime.environment = development
  * net.olioinfo.eeproperties.runtime.additionalConfigurationPaths = /Users/johndoe/test-eeproperties-configurations
+ * net.olioinfo.eeproperties.extendedPropertiesSyntax.enabled = true
  * </pre>
  *
  *
@@ -102,6 +104,60 @@ import java.util.Properties;
  *
  * <pre>
  * export CATALINA_OPTS="-Dnet.olioinfo.eeproperties.bootstrap.fileName=/Users/johndoe/test-eeproperties-configurations/net/olioinfo/eeproperties/eeproperties-bootstrap.properties ${CATALINA_OPTS}"
+ * </pre>
+ *
+ * <h3>Extended syntax</h3>
+ *
+ * <p>(Starting in version 2.1) Extended syntax support allows basic object types to be specified in properties files.
+ * At load time, EEProperties will attempt to convert the supplied property to an object of the indicated
+ * type.  This feature is enabled by default.</p>
+ *
+ * <p>It may be controlled by the bootstrap setting:</p>
+ *
+ * <pre>
+ * net.olioinfo.eeproperties.extendedPropertiesSyntax.enabled
+ * </pre>
+ *
+ * <p>The syntax in the Properties file prefixes the property value with an object type designator in brackets.
+ * The supported object types are:</p>
+ * <ul>
+ * <li>Integer</li>
+ * <li>Short</li>
+ * <li>Long</li>
+ * <li>Byte</li>
+ * <li>Float</li>
+ * <li>Double</li>
+ * <li>Boolean</li>
+ * <li>Date</li>
+ * </ul>
+ *
+ * <p>For the Date type, the following two formats will be parsed automatically.
+ * The format strings are those supported in SimpleDateFormat.</p>
+ * <ul>
+ * <li>"yyyy-MM-dd'T'HH:mm:ssZ"</li>
+ * <li>"yyyy-MM-dd"</li>
+ * </ul>
+ *
+ * <p>A set of accessor methods for each type is also available.
+ * For the default EEProperties instance, <em>sGet[object type]Property</em> and <em>sPut[object type[</em>.
+ * For any EEProperties instance, <em>get[object type]Property</em> and <em>put[object type]</em>. Arguments to all methods are
+ * typed. If a particular value didn't convert correctly to the specified type during load , a null will be returned
+ * for the requested typed property. The unparsed String value will remain accessible using the standard String-based
+ * property calls.</p>
+ *
+ * <p>Example</p>
+ *
+ * <pre>
+ * In a Properties file
+ *
+ * net.olioinfo.eeproperties.test.value.10 = [Integer] 123
+ *
+ * Applicable methods
+ *
+ * EEProperties.sGetIntegerProperty("net.olioinfo.eeproperties.test.value.10");
+ * (new EEProperties()).getIntegerProperty("net.olioinfo.eeproperties.test.value.10");
+ * EEProperties.sPutInteger("net.olioinfo.eeproperties.test.value.10",new Integer(123));
+ * (new EEProperties()).putInteger("net.olioinfo.eeproperties.test.value.10",new Integer(123));
  * </pre>
  *
  * <h3>Caution</h3>
@@ -169,16 +225,27 @@ public class EEProperties {
 
 
     /**
-     * Properties object that hold all properties
+     * Properties object that holds all conventional i.e. String - properties
      */
     private Properties coreProperties = new Properties();
 
+
+    /**
+     * HashMap object that holds all object-typed properties
+     */
+    private HashMap<String,Object> typedCoreProperties = new HashMap<String,Object>();
+    
     /*
      * Default environment if not specified is 'development'
      */
     private String runtimeEnvironment = "development";
-    
 
+
+    /**
+     *   Extended properties syntax
+     */
+    private boolean extendedPropertiesSyntax = true;
+    
     /*
      * Paths to search for external configuration files
      */
@@ -417,6 +484,349 @@ public class EEProperties {
         this.coreProperties.put(propertyName,propertyValue);
     }
 
+    /**
+     * Get an Integer property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Integer sGetIntegerProperty(String propertyName) {
+        return EEProperties.singleton().getIntegerProperty(propertyName);
+    }
+
+    /**
+     * Get an Integer property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Integer getIntegerProperty(String propertyName) {
+        return (Integer) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put an Integer property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutInteger(String propertyName, Integer propertyValue) {
+        EEProperties.singleton().putInteger(propertyName,propertyValue);
+    }
+
+    /**
+     * Put an Integer property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putInteger(String propertyName, Integer propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
+    /**
+     * Get a Hhort property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Short sGetShortProperty(String propertyName) {
+        return EEProperties.singleton().getShortProperty(propertyName);
+    }
+
+    /**
+     * Get a Short property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Short getShortProperty(String propertyName) {
+        return (Short) this.typedCoreProperties.get(propertyName);
+    }
+
+    /**
+     * Put a Short property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutShort(String propertyName, Short propertyValue) {
+        EEProperties.singleton().putShort(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a Short property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putShort(String propertyName, Short propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
+
+    /**
+     * Get a Long property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Long sGetLongProperty(String propertyName) {
+        return EEProperties.singleton().getLongProperty(propertyName);
+    }
+
+    /**
+     * Get a Long property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Long getLongProperty(String propertyName) {
+        return (Long) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put a Long property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutLong(String propertyName, Long propertyValue) {
+        EEProperties.singleton().putLong(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a Long property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putLong(String propertyName, Long propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
+    /**
+     * Get a Byte property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Byte sGetByteProperty(String propertyName) {
+        return EEProperties.singleton().getByteProperty(propertyName);
+    }
+
+    /**
+     * Get a Byte property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Byte getByteProperty(String propertyName) {
+        return (Byte) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put a Byte property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutByte(String propertyName, Byte propertyValue) {
+        EEProperties.singleton().putByte(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a Byte property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putByte(String propertyName, Byte propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
+    /**
+     * Get a Float property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Float sGetFloatProperty(String propertyName) {
+        return EEProperties.singleton().getFloatProperty(propertyName);
+    }
+
+    /**
+     * Get a Float property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Float getFloatProperty(String propertyName) {
+        return (Float) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put a Float property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutFloat(String propertyName, Float propertyValue) {
+        EEProperties.singleton().putFloat(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a Float property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putFloat(String propertyName, Float propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
+    /**
+     * Get a Double property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Double sGetDoubleProperty(String propertyName) {
+        return EEProperties.singleton().getDoubleProperty(propertyName);
+    }
+
+    /**
+     * Get a Double property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Double getDoubleProperty(String propertyName) {
+        return (Double) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put a Double property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutDouble(String propertyName, Double propertyValue) {
+        EEProperties.singleton().putDouble(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a Double property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putDouble(String propertyName, Double propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
+    /**
+     * Get a Boolean property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Boolean sGetBooleanProperty(String propertyName) {
+        return EEProperties.singleton().getBooleanProperty(propertyName);
+    }
+
+    /**
+     * Get a Boolean property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Boolean getBooleanProperty(String propertyName) {
+        return (Boolean) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put a Boolean property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutBoolean(String propertyName, Boolean propertyValue) {
+        EEProperties.singleton().putBoolean(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a Boolean property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putBoolean(String propertyName, Boolean propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+ 
+    /**
+     * Get a Date property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static Date sGetDateProperty(String propertyName) {
+        return EEProperties.singleton().getDateProperty(propertyName);
+    }
+
+    /**
+     * Get a Date property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public Date getDateProperty(String propertyName) {
+        return (Date) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put a Date property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutDate(String propertyName, Date propertyValue) {
+        EEProperties.singleton().putDate(propertyName,propertyValue);
+    }
+
+    /**
+     * Put a Date property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putDate(String propertyName, Date propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
 
 
     /**
@@ -517,10 +927,17 @@ public class EEProperties {
         this.runtimeEnvironment = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
             "net.olioinfo.eeproperties.runtime.environment",options,this.coreProperties,this.runtimeEnvironment);
 
+
+        String extendedPropertiesSyntaxSetting =  coreProperties.getProperty("net.olioinfo.eeproperties.extendedPropertiesSyntax.enabled");
+        if (extendedPropertiesSyntaxSetting != null && extendedPropertiesSyntaxSetting.equals("true")) {
+            this.extendedPropertiesSyntax = true;
+        }
+        
         String additionalPathsAsString = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
             "net.olioinfo.eeproperties.runtime.additionalConfigurationPaths",options,this.coreProperties,null);
 
         this.searchPathsList.addAll(parseSearchPaths(additionalPathsAsString));
+
     }
 
 
@@ -562,7 +979,7 @@ public class EEProperties {
      * @param defaultValue default value
      * @return value
      */
-    public String getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
+    private String getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
             String propertyName, HashMap<String,String> options, Properties properties, String defaultValue  ) {
 
         String returnValue = defaultValue;
@@ -617,7 +1034,11 @@ public class EEProperties {
                     this.logger.error(String.format("EEProperties.loadPropertiesFromFileOrClass input stream not created. Check file name and location"));
                 }
                 else {
-                    properties.load(is);
+                    Properties newProperties = new Properties();
+                    newProperties.load(is);
+                    newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
+                    convertToObjectInstances(newProperties);
+                    properties = addAll(properties,newProperties);
                     is.close();
                     returnStatus = true;
                 }
@@ -628,6 +1049,7 @@ public class EEProperties {
                 this.logger.error(String.format("EEProperties.loadPropertiesFromFileOrClass: exception %s",ex.toString()),ex);
             }
         }
+
         return returnStatus;
     }
 
@@ -650,7 +1072,11 @@ public class EEProperties {
                 InputStream is = null;
                 try {
                     is = new FileInputStream(fullFileName);
-                    properties.load(is);
+                    Properties newProperties = new Properties();
+                    newProperties.load(is);
+                    newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
+                    convertToObjectInstances(newProperties);
+                    properties = addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
                     logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded class %s from %s",fileName,fullFileName));
@@ -669,7 +1095,11 @@ public class EEProperties {
                     if (url != null) {
                         is = url.openStream();
                     }
-                    properties.load(is);
+                    Properties newProperties = new Properties();
+                    newProperties.load(is);
+                    newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
+                    convertToObjectInstances(newProperties);
+                    properties = addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
                     logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded file %s relative to class %s",fileName,klass.getName()));
@@ -706,6 +1136,180 @@ public class EEProperties {
 
         return searchPathList;
     }
+
+    /**
+     * Add all properties from one Properties instance to snother
+     *
+     * @param existingProperties Existing properties (this is the instance to which properties are added)
+     * @param newProperties New properties (this is the instance from which properties are copied)
+     * @return Merged properties object
+     */
+    private Properties addAll(Properties existingProperties, Properties newProperties) {
+
+        Set<String> propertyNames = newProperties.stringPropertyNames();
+        Iterator<String> propertyNamesItr = propertyNames.iterator();
+        while (propertyNamesItr.hasNext()) {
+            String propertyName = propertyNamesItr.next();
+            existingProperties.setProperty(propertyName,removeLeadingTrailingWhiteSpace(newProperties.getProperty(propertyName)));
+        }
+        return existingProperties;
+
+    }
+
+
+    /**
+     * Convert properties to object instances
+     *
+     * <p>Internal storage is updated. If errors occur during conversion no entry is made in the interance storage.</p>
+     *
+     * @param newProperties
+     *
+     */
+    private void convertToObjectInstances(Properties newProperties) {
+
+        Pattern objectTypeRegex = Pattern.compile("^\\[([^]]+)\\](.+)$", Pattern.CASE_INSENSITIVE);
+
+        if (this.extendedPropertiesSyntax) {
+            Set<String> propertyNames = newProperties.stringPropertyNames();
+            Iterator<String> propertyNamesItr = propertyNames.iterator();
+            while (propertyNamesItr.hasNext()) {
+                String propertyName = propertyNamesItr.next();
+                String propertyValue = newProperties.getProperty(propertyName);
+                Matcher matcher = objectTypeRegex.matcher(propertyValue);
+                if (matcher.matches()) {
+                    String objectType = matcher.group(1);
+                    String stringValue = removeLeadingTrailingWhiteSpace(matcher.group(2));
+                    Object returnedInstance = convertToObjectInstance(objectType,stringValue);
+                    if (returnedInstance != null) {
+                        try {
+                            if (objectType.equalsIgnoreCase("Integer")) {
+                                this.typedCoreProperties.put(propertyName,(Integer) returnedInstance);
+                            }
+                            else if (objectType.equalsIgnoreCase("Short")) {
+                                this.typedCoreProperties.put(propertyName,(Short) returnedInstance);
+                            }
+                            else if (objectType.equalsIgnoreCase("Long")) {
+                                this.typedCoreProperties.put(propertyName,(Long) returnedInstance);
+                            }
+                            else if (objectType.equalsIgnoreCase("Byte")) {
+                                this.typedCoreProperties.put(propertyName,(Byte) returnedInstance);
+                            }
+                            else if (objectType.equalsIgnoreCase("Float")) {
+                                this.typedCoreProperties.put(propertyName,(Float) returnedInstance);
+                            }
+                            else if (objectType.equalsIgnoreCase("Double")) {
+                                this.typedCoreProperties.put(propertyName,(Double) returnedInstance);
+                            }
+                            else if (objectType.equalsIgnoreCase("Boolean")) {
+                                this.typedCoreProperties.put(propertyName,(Boolean) returnedInstance);
+                            }
+                            else if (objectType.equalsIgnoreCase("Date")) {
+                                this.typedCoreProperties.put(propertyName,(Date) returnedInstance);
+                            }
+
+                            
+                        }
+                        catch (Exception ex) {
+                            logger.debug(String.format("Failed to cast %s to an object instance of type %s",stringValue,objectType),ex);
+                        }
+
+                    }
+                }
+            }
+        }
+        
+
+    }
+
+
+    /**
+     * Convert a String value to an object value
+     *
+     * @param objectType Type of object to convert to
+     * @param stringValue String value to convert
+     * @return Object instance with the specified value or null if conversion failed
+     */
+    private Object convertToObjectInstance(String objectType, String stringValue) {
+        Object returnedInstance = null;
+        try {
+            if (objectType.equalsIgnoreCase("Integer")) {
+                returnedInstance = new Integer(stringValue);
+            }
+            else if (objectType.equalsIgnoreCase("Short")) {
+                returnedInstance = new Short(stringValue);
+            }
+            else if (objectType.equalsIgnoreCase("Long")) {
+                returnedInstance = new Long(stringValue);
+            }
+            else if (objectType.equalsIgnoreCase("Byte")) {
+                returnedInstance = new Byte(stringValue);
+            }
+            else if (objectType.equalsIgnoreCase("Float")) {
+                returnedInstance = new Float(stringValue);
+            }
+            else if (objectType.equalsIgnoreCase("Double")) {
+                returnedInstance = new Double(stringValue);
+            }
+            else if (objectType.equalsIgnoreCase("Boolean")) {
+                if (stringValue.equalsIgnoreCase("true")) {
+                    returnedInstance = Boolean.TRUE;                    
+                }
+                else if (stringValue.equalsIgnoreCase("false")) {
+                    returnedInstance = Boolean.FALSE;
+                }
+            }
+            else if (objectType.equalsIgnoreCase("Date")) {
+                if (stringValue.indexOf("T") > -1) {
+                    SimpleDateFormat dateAndTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+                    returnedInstance = dateAndTime.parse(stringValue);
+                }
+                else {
+                    SimpleDateFormat dateOnly = new SimpleDateFormat("yyyy-MM-dd");
+                    returnedInstance = dateOnly.parse(stringValue);
+                }
+            }
+
+        }
+        catch (Exception ex) {
+            logger.debug(String.format("Failed to convert %s to an object of type %s",stringValue,objectType),ex);
+            returnedInstance = null;
+        }
+
+        return returnedInstance;
+
+    }
+
+    /**
+     * Strip leading and trailing blanks from all properties
+     *
+     * @param existingProperties Existing properties (this is the instance to which properties are added)
+     * @return Properties object with all properties stripped
+     */
+    private Properties stripAllLeadingTrailingWhiteSpace(Properties existingProperties) {
+
+        Set<String> propertyNames = existingProperties.stringPropertyNames();
+        Iterator<String> propertyNamesItr = propertyNames.iterator();
+        while (propertyNamesItr.hasNext()) {
+            String propertyName = propertyNamesItr.next();
+            existingProperties.setProperty(propertyName,removeLeadingTrailingWhiteSpace(existingProperties.getProperty(propertyName)));
+        }
+        return existingProperties;
+
+    }
+
+
+    /**
+     * Remove leading and trailing whitespace from a string
+     *
+     * @param inputString Input string
+     * @return String with leading and trailing whitespace removed
+     */
+    private String removeLeadingTrailingWhiteSpace(String inputString) {
+        String outputString = inputString.replaceFirst("^\\s*","");
+        outputString = outputString.replaceFirst("\\s*$","");
+        return outputString;
+    }
+    
     
     /**
      * Run standalone for testing purposes
