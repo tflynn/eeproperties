@@ -129,6 +129,7 @@ import java.util.regex.Pattern;
  * <li>Double</li>
  * <li>Boolean</li>
  * <li>Date</li>
+ * <li>ArrayList&lt;String&gt;</li>
  * </ul>
  *
  * <p>For the Date type, the following two formats will be parsed automatically.
@@ -193,7 +194,7 @@ import java.util.regex.Pattern;
  *
  *
  * @author Tracy Flynn
- * @version 2.0
+ * @version 2.2
  * @since 2.0
  */
 public class EEProperties {
@@ -828,6 +829,49 @@ public class EEProperties {
         this.typedCoreProperties.put(propertyName,propertyValue);
     }
 
+    /**
+     * Get an ArrayList<String> property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static ArrayList<String> sGetArrayListStringProperty(String propertyName) {
+        return EEProperties.singleton().getArrayListStringProperty(propertyName);
+    }
+
+    /**
+     * Get an ArrayList<String> property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public ArrayList<String> getArrayListStringProperty(String propertyName) {
+        return (ArrayList<String>) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put an ArrayList<String> property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutArrayListString(String propertyName, ArrayList<String> propertyValue) {
+        EEProperties.singleton().putArrayListString(propertyName,propertyValue);
+    }
+
+    /**
+     * Put an ArrayList<String> property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putArrayListString(String propertyName, ArrayList<String> propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
 
     /**
      * Initialize console tracing
@@ -1178,33 +1222,41 @@ public class EEProperties {
                 Matcher matcher = objectTypeRegex.matcher(propertyValue);
                 if (matcher.matches()) {
                     String objectType = matcher.group(1);
+                    String objectTypeLowerCase = objectType.toLowerCase();
                     String stringValue = removeLeadingTrailingWhiteSpace(matcher.group(2));
                     Object returnedInstance = convertToObjectInstance(objectType,stringValue);
                     if (returnedInstance != null) {
                         try {
-                            if (objectType.equalsIgnoreCase("Integer")) {
+                            if (objectTypeLowerCase.equals("integer")) {
                                 this.typedCoreProperties.put(propertyName,(Integer) returnedInstance);
                             }
-                            else if (objectType.equalsIgnoreCase("Short")) {
+                            else if (objectTypeLowerCase.equals("short")) {
                                 this.typedCoreProperties.put(propertyName,(Short) returnedInstance);
                             }
-                            else if (objectType.equalsIgnoreCase("Long")) {
+                            else if (objectTypeLowerCase.equals("long")) {
                                 this.typedCoreProperties.put(propertyName,(Long) returnedInstance);
                             }
-                            else if (objectType.equalsIgnoreCase("Byte")) {
+                            else if (objectTypeLowerCase.equals("byte")) {
                                 this.typedCoreProperties.put(propertyName,(Byte) returnedInstance);
                             }
-                            else if (objectType.equalsIgnoreCase("Float")) {
+                            else if (objectTypeLowerCase.equals("float")) {
                                 this.typedCoreProperties.put(propertyName,(Float) returnedInstance);
                             }
-                            else if (objectType.equalsIgnoreCase("Double")) {
+                            else if (objectTypeLowerCase.equals("double")) {
                                 this.typedCoreProperties.put(propertyName,(Double) returnedInstance);
                             }
-                            else if (objectType.equalsIgnoreCase("Boolean")) {
+                            else if (objectTypeLowerCase.equals("boolean")) {
                                 this.typedCoreProperties.put(propertyName,(Boolean) returnedInstance);
                             }
-                            else if (objectType.equalsIgnoreCase("Date")) {
+                            else if (objectTypeLowerCase.equals("date")) {
                                 this.typedCoreProperties.put(propertyName,(Date) returnedInstance);
+                            }
+                            else if (objectTypeLowerCase.startsWith("arraylist")) {
+                                ArrayList<Object> returnedList  = (ArrayList<Object>) returnedInstance;
+                                String arrayListType = (String) returnedList.get(0);
+                                if (arrayListType.equals("string")) {
+                                    this.typedCoreProperties.put(propertyName,(ArrayList<String>) returnedList.get(1));
+                                }
                             }
 
                             
@@ -1229,28 +1281,32 @@ public class EEProperties {
      * @param stringValue String value to convert
      * @return Object instance with the specified value or null if conversion failed
      */
-    private Object convertToObjectInstance(String objectType, String stringValue) {
+    private Object convertToObjectInstance(String objectType, String stringValue ) {
+
+        Pattern arrayListRegex = Pattern.compile("^[^<]+<([^>]+)>$", Pattern.CASE_INSENSITIVE);
+
         Object returnedInstance = null;
+        String objectTypeLowerCase = objectType.toLowerCase();
         try {
-            if (objectType.equalsIgnoreCase("Integer")) {
+            if (objectTypeLowerCase.equals("integer")) {
                 returnedInstance = new Integer(stringValue);
             }
-            else if (objectType.equalsIgnoreCase("Short")) {
+            else if (objectTypeLowerCase.equals("short")) {
                 returnedInstance = new Short(stringValue);
             }
-            else if (objectType.equalsIgnoreCase("Long")) {
+            else if (objectTypeLowerCase.equals("long")) {
                 returnedInstance = new Long(stringValue);
             }
-            else if (objectType.equalsIgnoreCase("Byte")) {
+            else if (objectTypeLowerCase.equals("byte")) {
                 returnedInstance = new Byte(stringValue);
             }
-            else if (objectType.equalsIgnoreCase("Float")) {
+            else if (objectTypeLowerCase.equals("float")) {
                 returnedInstance = new Float(stringValue);
             }
-            else if (objectType.equalsIgnoreCase("Double")) {
+            else if (objectTypeLowerCase.equals("double")) {
                 returnedInstance = new Double(stringValue);
             }
-            else if (objectType.equalsIgnoreCase("Boolean")) {
+            else if (objectTypeLowerCase.equals("boolean")) {
                 if (stringValue.equalsIgnoreCase("true")) {
                     returnedInstance = Boolean.TRUE;                    
                 }
@@ -1258,7 +1314,7 @@ public class EEProperties {
                     returnedInstance = Boolean.FALSE;
                 }
             }
-            else if (objectType.equalsIgnoreCase("Date")) {
+            else if (objectTypeLowerCase.equals("date")) {
                 if (stringValue.indexOf("T") > -1) {
                     SimpleDateFormat dateAndTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
                     returnedInstance = dateAndTime.parse(stringValue);
@@ -1267,6 +1323,26 @@ public class EEProperties {
                     SimpleDateFormat dateOnly = new SimpleDateFormat("yyyy-MM-dd");
                     returnedInstance = dateOnly.parse(stringValue);
                 }
+            }
+            else if (objectTypeLowerCase.startsWith("arraylist")) {
+                ArrayList<Object> returnedArray = new ArrayList<Object>();
+                String[] rawStringValues = stringValue.split(",");
+                Matcher arrayListMatcher = arrayListRegex.matcher(objectTypeLowerCase);
+                if (arrayListMatcher.matches()) {
+                    String arrayListType = arrayListMatcher.group(1);
+                    if (arrayListType.equals("string")) {
+                        ArrayList<String> stringArrayList = new ArrayList<String>();
+                        for (String rawString : rawStringValues ) {
+                            stringArrayList.add(removeLeadingTrailingWhiteSpace(rawString));
+                        }
+                        returnedArray.add(arrayListType);
+                        returnedArray.add(stringArrayList);
+                    }
+
+                    returnedInstance = returnedArray;
+
+                }
+
             }
 
         }

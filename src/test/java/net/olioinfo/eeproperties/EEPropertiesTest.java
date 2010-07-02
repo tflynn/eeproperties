@@ -20,6 +20,7 @@ import org.testng.annotations.*;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -132,6 +133,13 @@ public class EEPropertiesTest {
             catch (Exception ex) {
                 assert false;
             }
+        }
+
+        ArrayList<String> stringList = EEProperties.sGetArrayListStringProperty("net.olioinfo.eeproperties.test.value.20");
+        if (stringList != null) {
+            assert stringList.get(0).equals("string 1");
+            assert stringList.get(1).equals("string 2");
+            assert stringList.get(2).equals("string 3");
         }
 
     }
