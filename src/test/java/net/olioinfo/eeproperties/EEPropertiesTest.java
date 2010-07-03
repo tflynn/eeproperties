@@ -142,6 +142,14 @@ public class EEPropertiesTest {
             assert stringList.get(2).equals("string 3");
         }
 
+
+        ArrayList<Integer> integerList = EEProperties.sGetArrayListIntegerProperty("net.olioinfo.eeproperties.test.value.21");
+        if (integerList != null) {
+            assert (integerList.get(0) == 3);
+            assert (integerList.get(1) == 17);
+            assert (integerList.get(2) == 89);
+        }
+
     }
 
 }

@@ -874,6 +874,49 @@ public class EEProperties {
 
 
     /**
+     * Get an ArrayList<Integer> property setting  (for the singleton class)
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public static ArrayList<Integer> sGetArrayListIntegerProperty(String propertyName) {
+        return EEProperties.singleton().getArrayListIntegerProperty(propertyName);
+    }
+
+    /**
+     * Get an ArrayList<Integer> property setting
+     *
+     * @param propertyName Property Name to retrieve
+     * @return Property value or null if not found
+     */
+    public ArrayList<Integer> getArrayListIntegerProperty(String propertyName) {
+        return (ArrayList<Integer>) this.typedCoreProperties.get(propertyName);
+    }
+
+
+    /**
+     * Put an ArrayList<Integer> property (for the singleton class)
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public static void sPutArrayListInteger(String propertyName, ArrayList<Integer> propertyValue) {
+        EEProperties.singleton().putArrayListInteger(propertyName,propertyValue);
+    }
+
+    /**
+     * Put an ArrayList<Integer property
+     *
+     * @param propertyName Property Name to set
+     * @param propertyValue Value for property
+     *
+     */
+    public void putArrayListInteger(String propertyName, ArrayList<Integer> propertyValue) {
+        this.typedCoreProperties.put(propertyName,propertyValue);
+    }
+
+    /**
      * Initialize console tracing
      *
      * @param options Hash of options
@@ -1257,6 +1300,9 @@ public class EEProperties {
                                 if (arrayListType.equals("string")) {
                                     this.typedCoreProperties.put(propertyName,(ArrayList<String>) returnedList.get(1));
                                 }
+                                else if (arrayListType.equals("integer")) {
+                                    this.typedCoreProperties.put(propertyName,(ArrayList<Integer>) returnedList.get(1));
+                                }
                             }
 
                             
@@ -1338,6 +1384,15 @@ public class EEProperties {
                         returnedArray.add(arrayListType);
                         returnedArray.add(stringArrayList);
                     }
+                    else if (arrayListType.equals("integer")) {
+                        ArrayList<Integer> integerArrayList = new ArrayList<Integer>();
+                        for (String rawString : rawStringValues ) {
+                            integerArrayList.add(new Integer(removeLeadingTrailingWhiteSpace(rawString)));
+                        }
+                        returnedArray.add(arrayListType);
+                        returnedArray.add(integerArrayList);
+                    }
+
 
                     returnedInstance = returnedArray;
 
