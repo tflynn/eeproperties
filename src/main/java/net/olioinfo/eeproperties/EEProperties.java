@@ -1167,8 +1167,15 @@ public class EEProperties {
 
         boolean fileFound = false;
         for (String location : locations ) {
-            String fullFileName = String.format("%s/%s/%s",location,klass.getPackage().getName().replaceAll("\\.","/"),fileName);
-            if ((new File(fullFileName).exists())) {
+            String fullFileName = null;
+            fullFileName = String.format("%s/%s/%s",location,klass.getPackage().getName().replaceAll("\\.","/"),fileName);
+            if (! (new File(fullFileName).exists())) {
+                fullFileName = String.format("%s/%s",location,fileName);
+                if (! (new File(fullFileName).exists())) {
+                    fullFileName = null;
+                }
+            }
+            if (fullFileName != null) {
                 InputStream is = null;
                 try {
                     is = new FileInputStream(fullFileName);
