@@ -191,10 +191,23 @@ import java.util.regex.Pattern;
  * <p>No methods throw exceptions. Instead, exceptions will be logged. So, if something doesn't appear to be working
  * correctly, enable some of the logging options listed above to isolate the problem.</p>
  *
+ * <h3>Maven dependency</h3>
  *
+ * <pre>
+ * &lt;dependency&gt;
+ *   &lt;groupId&gt;net.olioinfo&lt;/groupId&gt;
+ *   &lt;artifactId&gt;eeproperties&lt;/artifactId&gt;
+ *   &lt;version&gt;2.3&lt;/version&gt;
+ * &lt;/dependency&gt;
+ *
+ * &lt;repository&gt;
+ *   &lt;id&gt;net-oilinfo&lt;/id&gt;
+ *   &lt;url&gt;http://myowndemo.com:8080/nexus/content/repositories/net-olioinfo&lt;/url&gt;
+ * &lt;/repository&gt;
+ * </pre>
  *
  * @author Tracy Flynn
- * @version 2.2
+ * @version 2.3
  * @since 2.0
  */
 public class EEProperties {
