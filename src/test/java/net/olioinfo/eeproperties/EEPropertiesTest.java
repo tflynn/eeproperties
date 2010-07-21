@@ -152,4 +152,63 @@ public class EEPropertiesTest {
 
     }
 
+    public void testVariableSubtitution() {
+
+        String testString;
+        String substitutedString;
+        String expectedSubstitutedString;
+
+        // Test null case first
+        testString = "abcdef";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(testString.equals(substitutedString));
+        
+        // Test one value at start, in middle and at end
+        System.setProperty("var1","value1");
+        testString = "${var1}";
+        expectedSubstitutedString = "value1";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+        testString = "${var1}a";
+        expectedSubstitutedString = "value1a";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+        testString = "a${var1}b";
+        expectedSubstitutedString = "avalue1b";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+        testString = "a${var1}";
+        expectedSubstitutedString = "avalue1";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+
+        // Test two values in string
+        System.setProperty("var1","value1");
+        System.setProperty("var2","value2");
+        testString = "${var1}${var2}";
+        expectedSubstitutedString = "value1value2";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+        testString = "a${var1}${var2}";
+        expectedSubstitutedString = "avalue1value2";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+        testString = "a${var1}b${var2}";
+        expectedSubstitutedString = "avalue1bvalue2";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+        testString = "a${var1}b${var2}c";
+        expectedSubstitutedString = "avalue1bvalue2c";
+        substitutedString = EEProperties.substituteVariables(testString);
+        assert(substitutedString.equals(expectedSubstitutedString));
+
+    }
+
 }

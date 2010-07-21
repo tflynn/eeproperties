@@ -106,6 +106,13 @@ import java.util.regex.Pattern;
  * export CATALINA_OPTS="-Dnet.olioinfo.eeproperties.bootstrap.fileName=/Users/johndoe/test-eeproperties-configurations/net/olioinfo/eeproperties/eeproperties-bootstrap.properties ${CATALINA_OPTS}"
  * </pre>
  *
+ * <h3>Variable substitution</h3>
+ *
+ * <p>EEProperties supports variable substitution in both property names and values. Variable substitutions are
+ * indicated using the standard syntax ${variable_name}. This value will be replaced at load time by the corresponding
+ * value from the system environment (System.getEnv()) and the system properties (System.getProperty()) in that order.
+ * Thus, system properties always override environemt settings.</p>
+ * 
  * <h3>Extended syntax</h3>
  *
  * <p>(Starting in version 2.1) Extended syntax support allows basic object types to be specified in properties files.
@@ -207,7 +214,7 @@ import java.util.regex.Pattern;
  * </pre>
  *
  * @author Tracy Flynn
- * @version 2.3
+ * @version 2.5
  * @since 2.0
  */
 public class EEProperties {
@@ -930,6 +937,39 @@ public class EEProperties {
     }
 
     /**
+     * Substitute all the variable expressions in a given string with system environment settings and system properties
+     * in that order. If no match is found, the variable is left unmodified
+     *
+     * @param inputString String with possible variable substitution patterns
+     * @return String with substitutions if available
+     * @since 2.5
+     */
+    public static String substituteVariables(String inputString) {
+
+        // Returned String builder
+        StringBuffer returnedStringBuf = new StringBuffer();
+
+        int matchPos;
+        int startPos = 0;
+        int endPos = inputString.length() - 1;
+        while ( ( matchPos = inputString.indexOf("${",startPos)) != -1 ) {
+            String beforeVariable = inputString.substring(startPos,matchPos);
+            int varNameEnd = inputString.indexOf("}",matchPos + 2);
+            String varName = inputString.substring(matchPos + 2, varNameEnd);
+            String substitutionValue = System.getProperty(varName) != null ? System.getProperty(varName) : System.getenv(varName);
+            if (substitutionValue == null) {
+                substitutionValue = String.format("${%s}",varName);
+            }
+            returnedStringBuf.append(beforeVariable).append(substitutionValue);
+            startPos = varNameEnd + 1;
+        }
+        if (startPos <= endPos) {
+           returnedStringBuf.append(inputString.substring(startPos));
+        }
+        return returnedStringBuf.toString(); 
+    }
+
+    /**
      * Initialize console tracing
      *
      * @param options Hash of options
@@ -1137,6 +1177,7 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
+                    newProperties = substituteAll(newProperties);
                     convertToObjectInstances(newProperties);
                     properties = addAll(properties,newProperties);
                     is.close();
@@ -1182,6 +1223,7 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
+                    newProperties = substituteAll(newProperties);
                     convertToObjectInstances(newProperties);
                     properties = addAll(properties,newProperties);
                     is.close();
@@ -1205,6 +1247,7 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
+                    newProperties = substituteAll(newProperties);
                     convertToObjectInstances(newProperties);
                     properties = addAll(properties,newProperties);
                     is.close();
@@ -1428,6 +1471,27 @@ public class EEProperties {
 
         return returnedInstance;
 
+    }
+
+
+
+    /**
+     * Perform variable substitution for all properties
+     *
+     * @param existingProperties Existing properties (this is the instance to which properties are added)
+     * @return Properties object with all properties substituted
+     */
+    private Properties substituteAll(Properties existingProperties) {
+        Set<String> propertyNames = existingProperties.stringPropertyNames();
+        for (String propertyName : propertyNames) {
+            String propertyValue =  existingProperties.getProperty(propertyName);
+            String substitutedName = EEProperties.substituteVariables(propertyName);
+            String substitutedValue = EEProperties.substituteVariables(propertyValue);
+            existingProperties.setProperty(substitutedName,substitutedValue);
+        }
+        return existingProperties;
+
+        
     }
 
     /**
