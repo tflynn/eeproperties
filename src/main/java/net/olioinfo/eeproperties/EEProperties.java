@@ -18,6 +18,7 @@ package net.olioinfo.eeproperties;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -438,6 +439,26 @@ public class EEProperties {
 
         loadAndMergeConfigurations(names,klass,properties,options);
 
+    }
+
+
+    /**
+     * List all the properties and values to the designated output stream (singleton version)
+     *
+     * @param printStream PrintStream to output properties to
+     */
+    public static void sListProperties(PrintStream printStream) {
+        EEProperties.singleton().listProperties(printStream);
+
+    }
+
+    /**
+     * List all the properties and values to the designated output stream
+     *
+     * @param printStream PrintStream to output properties to
+     */
+    public void listProperties(PrintStream printStream) {
+        this.coreProperties.list(printStream);
     }
 
     /**
