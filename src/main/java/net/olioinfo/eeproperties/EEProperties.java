@@ -215,7 +215,7 @@ import java.util.regex.Pattern;
  * </pre>
  *
  * @author Tracy Flynn
- * @version 2.5
+ * @version 2.6
  * @since 2.0
  */
 public class EEProperties {
@@ -996,7 +996,8 @@ public class EEProperties {
      * <p>Only intended for internal use. Requires setup. See explanation in sReloadConfigurations.</p>
      *
      * @param loadDefinitions Used if supplied. If null use existing (singleton) values
-     * 
+     *
+     * @since 2.6
      */
     public void reloadConfigurations(ArrayList<EEPropertiesLoadDefinition> loadDefinitions) {
 
@@ -1023,19 +1024,23 @@ public class EEProperties {
      * <li>Initialize new (singleton) instance</li>
      * <li>Reload existing load definitions against new (singleton) instance</li>
      * </ul>
+     *
+     * @since 2.6
      */
     public static void sReloadConfigurations() {
 
-        // This sequence avoids an infinite loop when reloading as EEProperties.registerDefinition is called during reload
-        
-        ArrayList<EEPropertiesLoadDefinition> existingLoadDefinitions = EEPropertiesLoadDefinition.getRegisteredDefinitions();
-        EEPropertiesLoadDefinition.sResetRegisteredDefinitions();
+        synchronized (EEProperties.class) {
+            // This sequence avoids an infinite loop when reloading as EEProperties.registerDefinition is called during reload
 
-        // This call does the basic initialization for EEProperties itself - including rereading the bootstrap file and internal logging settings
-        EEProperties.instance = new EEProperties();
+            ArrayList<EEPropertiesLoadDefinition> existingLoadDefinitions = EEPropertiesLoadDefinition.getRegisteredDefinitions();
+            EEPropertiesLoadDefinition.sResetRegisteredDefinitions();
 
-        // Now load the previous definitions in order
-        EEProperties.singleton().reloadConfigurations(existingLoadDefinitions);
+            // This call does the basic initialization for EEProperties itself - including rereading the bootstrap file and internal logging settings
+            EEProperties.instance = new EEProperties();
+            
+            // Now load the previous definitions in order
+            EEProperties.singleton().reloadConfigurations(existingLoadDefinitions);
+        }
     }
 
 
@@ -1605,5 +1610,23 @@ public class EEProperties {
      */
     public static void main(String[] args) {
         EEProperties.singleton();
+
+//        HashMap<String,String> options = new HashMap<String,String>();
+//        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+//        EEProperties.singleton().loadPackageConfiguration(EEProperties.class,options);
+//        System.out.println("test value should be 'value1' but is " + EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1"));
+//
+//        EEProperties.sPut("test.reload.property.1","one");
+//
+//        EEProperties.sReloadConfigurations();
+//        options = new HashMap<String,String>();
+//        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+//        EEProperties.singleton().loadPackageConfiguration(EEProperties.class,options);
+//
+//        System.out.println("test value should be 'value1' but is " + EEProperties.sGetProperty("net.olioinfo.eeproperties.test.value.1"));
+//        String value =  EEProperties.sGetProperty("test.reload.property.1");
+//        System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXX");
+//        System.out.println("Value is " + (value == null ? "null" : "not null" )) ;
+
     }
 }

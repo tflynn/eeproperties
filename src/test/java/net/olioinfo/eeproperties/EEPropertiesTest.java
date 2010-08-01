@@ -15,8 +15,9 @@
 package net.olioinfo.eeproperties;
 
 
-import org.testng.Assert;
-import org.testng.annotations.*;
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -31,8 +32,26 @@ import java.util.HashMap;
  * @author Tracy Flynn
  * @since Jun 27, 2010
  */
-@Test
-public class EEPropertiesTest {
+
+public class EEPropertiesTest  extends TestCase {
+
+    /**
+     * Create the test case
+     *
+     * @param testName name of the test case
+     */
+    public EEPropertiesTest( String testName )
+    {
+        super( testName );
+    }
+
+    /**
+     * @return the suite of tests being tested
+     */
+    public static Test suite()
+    {
+        return new TestSuite( EEPropertiesTest.class );
+    }
 
     public void testInitialization() {
         // Force loading
@@ -72,6 +91,7 @@ public class EEPropertiesTest {
             assert true;
         }
     }
+
 
     public void testConvertObjectTypes() {
         HashMap<String,String> options = new HashMap<String,String>();
@@ -210,5 +230,20 @@ public class EEPropertiesTest {
         assert(substitutedString.equals(expectedSubstitutedString));
 
     }
+
+    public void testReLoad() {
+        HashMap<String,String> options = new HashMap<String,String>();
+        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+        EEProperties.singleton().loadPackageConfiguration(EEProperties.class,options);
+        EEProperties.sPut("test.reload.property.1","one");
+
+        EEProperties.sReloadConfigurations();
+        options = new HashMap<String,String>();
+        options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");
+        EEProperties.singleton().loadPackageConfiguration(EEProperties.class,options);
+        //String value =  EEProperties.sGetProperty("test.reload.property.1");
+        assert(EEProperties.sGetProperty("test.reload.property.1") == null);
+    }
+
 
 }
