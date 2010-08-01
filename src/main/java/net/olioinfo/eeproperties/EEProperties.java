@@ -991,6 +991,55 @@ public class EEProperties {
     }
 
     /**
+     * Reload all the existing configuration definitions in the order they were originally loaded
+     *
+     * <p>Only intended for internal use. Requires setup. See explanation in sReloadConfigurations.</p>
+     *
+     * @param loadDefinitions Used if supplied. If null use existing (singleton) values
+     * 
+     */
+    public void reloadConfigurations(ArrayList<EEPropertiesLoadDefinition> loadDefinitions) {
+
+        if (loadDefinitions == null) {
+            loadDefinitions = EEPropertiesLoadDefinition.getRegisteredDefinitions();
+        }
+        for (EEPropertiesLoadDefinition loadDefinition : loadDefinitions ) {
+           if (loadDefinition.getEntryType() == EEPropertiesLoadDefinition.DEFINITION_TYPE_ABSOLUTE_PATH) {
+                loadPropertiesFromFileOrClass(this.coreProperties,loadDefinition.getEntryPath(),null);
+           }
+           else if (loadDefinition.getEntryType() == EEPropertiesLoadDefinition.DEFINITION_TYPE_CLASS_RELATIVE) {
+               loadPropertiesFromFileOrClass(this.coreProperties,loadDefinition.getEntryPath(),loadDefinition.getEntryClass());
+           }
+        }
+    }
+
+
+    /**
+     * Reload all the existing configuration definitions in the order they were originally loaded (singleton instance)
+     *
+     * <p>Sequence</p>
+     * <ul>
+     * <li>Get existing load definitions</li>
+     * <li>Initialize new (singleton) instance</li>
+     * <li>Reload existing load definitions against new (singleton) instance</li>
+     * </ul>
+     */
+    public static void sReloadConfigurations() {
+
+        // This sequence avoids an infinite loop when reloading as EEProperties.registerDefinition is called during reload
+        
+        ArrayList<EEPropertiesLoadDefinition> existingLoadDefinitions = EEPropertiesLoadDefinition.getRegisteredDefinitions();
+        EEPropertiesLoadDefinition.sResetRegisteredDefinitions();
+
+        // This call does the basic initialization for EEProperties itself - including rereading the bootstrap file and internal logging settings
+        EEProperties.instance = new EEProperties();
+
+        // Now load the previous definitions in order
+        EEProperties.singleton().reloadConfigurations(existingLoadDefinitions);
+    }
+
+
+    /**
      * Initialize console tracing
      *
      * @param options Hash of options
@@ -1176,18 +1225,20 @@ public class EEProperties {
             try {
                 InputStream is = null;
                 if (fileName == null) {
-                    this.logger.error(String.format("EEProperties.loadPropertiesFromFileOrClass no file name specified"));
+                    this.logger.info(String.format("EEProperties.loadPropertiesFromFileOrClass no file name specified"));
                 }
                 else {
                     if (fileName.startsWith("/")) {
                         if ((new File(fileName).exists())) {
                             is = new FileInputStream(fileName);
+                            EEPropertiesLoadDefinition.createFromAbsolutePath(fileName);
                         }
                     }
                     else if (klass != null) {
                         URL url = klass.getResource(fileName);
                         if (url != null) {
                             is = url.openStream();
+                            EEPropertiesLoadDefinition.createFromClass(klass,fileName);
                         }
                     }
                 }
@@ -1249,6 +1300,7 @@ public class EEProperties {
                     properties = addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
+                    EEPropertiesLoadDefinition.createFromAbsolutePath(fullFileName);
                     logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded class %s from %s",fileName,fullFileName));
                 }
                 catch (Exception ex) {
@@ -1273,6 +1325,7 @@ public class EEProperties {
                     properties = addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
+                    EEPropertiesLoadDefinition.createFromClass(klass,fileName);
                     logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded file %s relative to class %s",fileName,klass.getName()));
                 }
                 catch (Exception ex) {
