@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Properties;
 
 
 /**
@@ -180,29 +181,29 @@ public class EEPropertiesTest  extends TestCase {
 
         // Test null case first
         testString = "abcdef";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(testString.equals(substitutedString));
         
         // Test one value at start, in middle and at end
         System.setProperty("var1","value1");
         testString = "${var1}";
         expectedSubstitutedString = "value1";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
         testString = "${var1}a";
         expectedSubstitutedString = "value1a";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
         testString = "a${var1}b";
         expectedSubstitutedString = "avalue1b";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
         testString = "a${var1}";
         expectedSubstitutedString = "avalue1";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
 
@@ -211,24 +212,42 @@ public class EEPropertiesTest  extends TestCase {
         System.setProperty("var2","value2");
         testString = "${var1}${var2}";
         expectedSubstitutedString = "value1value2";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
         testString = "a${var1}${var2}";
         expectedSubstitutedString = "avalue1value2";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
         testString = "a${var1}b${var2}";
         expectedSubstitutedString = "avalue1bvalue2";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
         testString = "a${var1}b${var2}c";
         expectedSubstitutedString = "avalue1bvalue2c";
-        substitutedString = EEProperties.substituteVariables(testString);
+        substitutedString = EEProperties.substituteVariables(testString,null);
         assert(substitutedString.equals(expectedSubstitutedString));
 
+    }
+
+    public void testResubstitutions() {
+
+        Properties testProperties;
+        String testString;
+        String substitutedString;
+        String expectedSubstitutedString;
+
+        testProperties = new Properties();
+
+
+        testProperties.setProperty("prop1","value1");
+        testString = "a${prop1}z";
+        expectedSubstitutedString = "avalue1z";
+        substitutedString = EEProperties.substituteVariables(testString,testProperties);
+        assert(substitutedString.equals(expectedSubstitutedString));
+        
     }
 
     public void testReLoad() {
