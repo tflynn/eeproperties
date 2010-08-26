@@ -462,6 +462,45 @@ public class EEProperties {
         this.coreProperties.list(printStream);
     }
 
+
+    /**
+     * <p>Get an unordered list of all the property names as Strings (Singleton instance)</p>
+     *
+     * </p>Any property key that doesn't convert to a String will be skipped.</p>
+     *
+     * @return Unordered list of property names
+     *
+     * @since 2.8
+     */
+    public static ArrayList<String> sPropertyNames() {
+        return EEProperties.singleton().propertyNames();
+
+    }
+
+    /**
+     * <p>Get an unordered list of all the property names as Strings</p>
+     *
+     * </p>Any property key that doesn't convert to a String will be skipped.</p>
+     *
+     * @return Unordered list of property names
+     *
+     * @since 2.8
+     */
+    public ArrayList<String> propertyNames() {
+        ArrayList<String> propertyNames = new ArrayList<String>();
+        for (Object key : this.coreProperties.keySet()) {
+            try {
+                String propertyName = (String) key;
+                propertyNames.add(propertyName);
+            }
+            catch (Exception ex) {
+                // Do nothing - just skip
+
+            }
+        }
+        return propertyNames;
+    }
+
     /**
      * Get a property setting  (for the singleton class)
      *
