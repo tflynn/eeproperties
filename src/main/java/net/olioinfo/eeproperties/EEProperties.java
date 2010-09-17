@@ -206,7 +206,7 @@ import java.util.regex.Pattern;
  * &lt;dependency&gt;
  *   &lt;groupId&gt;net.olioinfo&lt;/groupId&gt;
  *   &lt;artifactId&gt;eeproperties&lt;/artifactId&gt;
- *   &lt;version&gt;2.3&lt;/version&gt;
+ *   &lt;version&gt;2.9&lt;/version&gt;
  * &lt;/dependency&gt;
  *
  * &lt;repository&gt;
@@ -216,7 +216,7 @@ import java.util.regex.Pattern;
  * </pre>
  *
  * @author Tracy Flynn
- * @version 2.7
+ * @version 2.9
  * @since 2.0
  */
 public class EEProperties {
@@ -234,7 +234,18 @@ public class EEProperties {
      */
     private static final String CORE_CONFIGURATION_FILE_NAME_FQ = "eeproperties-bootstrap.properties";
 
+    /**
+     * Property value key for a typed property
+     */
+    private static final String TYPED_PROPERTY_VALUE = "value";
 
+
+    /**
+     * Property type key for a typed property
+     */
+    private static final String TYPED_PROPERTY_TYPE = "type";
+
+    
     /**
      * Singleton instance of EEProperites
      */
@@ -256,7 +267,7 @@ public class EEProperties {
     /**
      * HashMap object that holds all object-typed properties
      */
-    private HashMap<String,Object> typedCoreProperties = new HashMap<String,Object>();
+    private HashMap<String,HashMap<String,Object>> typedCoreProperties = new HashMap<String,HashMap<String,Object>>();
     
     /*
      * Default environment if not specified is 'development'
@@ -583,7 +594,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Integer getIntegerProperty(String propertyName) {
-        return (Integer) this.typedCoreProperties.get(propertyName);
+        return (Integer) getTypedPropertyValue(propertyName);
     }
 
 
@@ -606,7 +617,7 @@ public class EEProperties {
      *
      */
     public void putInteger(String propertyName, Integer propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Integer");
     }
 
     /**
@@ -626,7 +637,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Short getShortProperty(String propertyName) {
-        return (Short) this.typedCoreProperties.get(propertyName);
+        return (Short) getTypedPropertyValue(propertyName);
     }
 
     /**
@@ -648,7 +659,7 @@ public class EEProperties {
      *
      */
     public void putShort(String propertyName, Short propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Short");
     }
 
 
@@ -669,7 +680,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Long getLongProperty(String propertyName) {
-        return (Long) this.typedCoreProperties.get(propertyName);
+        return (Long) getTypedPropertyValue(propertyName);
     }
 
 
@@ -692,7 +703,7 @@ public class EEProperties {
      *
      */
     public void putLong(String propertyName, Long propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Long");
     }
 
     /**
@@ -712,7 +723,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Byte getByteProperty(String propertyName) {
-        return (Byte) this.typedCoreProperties.get(propertyName);
+        return (Byte) getTypedPropertyValue(propertyName);
     }
 
 
@@ -735,7 +746,7 @@ public class EEProperties {
      *
      */
     public void putByte(String propertyName, Byte propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Byte");
     }
 
     /**
@@ -755,7 +766,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Float getFloatProperty(String propertyName) {
-        return (Float) this.typedCoreProperties.get(propertyName);
+        return (Float) getTypedPropertyValue(propertyName);
     }
 
 
@@ -778,7 +789,7 @@ public class EEProperties {
      *
      */
     public void putFloat(String propertyName, Float propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Float");
     }
 
     /**
@@ -798,7 +809,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Double getDoubleProperty(String propertyName) {
-        return (Double) this.typedCoreProperties.get(propertyName);
+        return (Double) getTypedPropertyValue(propertyName);
     }
 
 
@@ -821,7 +832,7 @@ public class EEProperties {
      *
      */
     public void putDouble(String propertyName, Double propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Double");
     }
 
     /**
@@ -841,7 +852,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Boolean getBooleanProperty(String propertyName) {
-        return (Boolean) this.typedCoreProperties.get(propertyName);
+        return (Boolean) getTypedPropertyValue(propertyName);
     }
 
 
@@ -864,7 +875,7 @@ public class EEProperties {
      *
      */
     public void putBoolean(String propertyName, Boolean propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Boolean");
     }
  
     /**
@@ -884,7 +895,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public Date getDateProperty(String propertyName) {
-        return (Date) this.typedCoreProperties.get(propertyName);
+        return (Date) getTypedPropertyValue(propertyName);
     }
 
 
@@ -907,7 +918,7 @@ public class EEProperties {
      *
      */
     public void putDate(String propertyName, Date propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"Date");
     }
 
     /**
@@ -927,7 +938,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public ArrayList<String> getArrayListStringProperty(String propertyName) {
-        return (ArrayList<String>) this.typedCoreProperties.get(propertyName);
+        return (ArrayList<String>) getTypedPropertyValue(propertyName);
     }
 
 
@@ -950,7 +961,7 @@ public class EEProperties {
      *
      */
     public void putArrayListString(String propertyName, ArrayList<String> propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"ArrayList<String>");
     }
 
 
@@ -971,7 +982,7 @@ public class EEProperties {
      * @return Property value or null if not found
      */
     public ArrayList<Integer> getArrayListIntegerProperty(String propertyName) {
-        return (ArrayList<Integer>) this.typedCoreProperties.get(propertyName);
+        return (ArrayList<Integer>) getTypedPropertyValue(propertyName);
     }
 
 
@@ -994,7 +1005,7 @@ public class EEProperties {
      *
      */
     public void putArrayListInteger(String propertyName, ArrayList<Integer> propertyValue) {
-        this.typedCoreProperties.put(propertyName,propertyValue);
+        setValueAndTypeForTypedropertyValue(propertyName,propertyValue,"ArrayList<Integer>");
     }
 
     /**
@@ -1461,39 +1472,24 @@ public class EEProperties {
                     Object returnedInstance = convertToObjectInstance(objectType,stringValue);
                     if (returnedInstance != null) {
                         try {
-                            if (objectTypeLowerCase.equals("integer")) {
-                                this.typedCoreProperties.put(propertyName,(Integer) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.equals("short")) {
-                                this.typedCoreProperties.put(propertyName,(Short) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.equals("long")) {
-                                this.typedCoreProperties.put(propertyName,(Long) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.equals("byte")) {
-                                this.typedCoreProperties.put(propertyName,(Byte) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.equals("float")) {
-                                this.typedCoreProperties.put(propertyName,(Float) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.equals("double")) {
-                                this.typedCoreProperties.put(propertyName,(Double) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.equals("boolean")) {
-                                this.typedCoreProperties.put(propertyName,(Boolean) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.equals("date")) {
-                                this.typedCoreProperties.put(propertyName,(Date) returnedInstance);
-                            }
-                            else if (objectTypeLowerCase.startsWith("arraylist")) {
+                            HashMap<String,Object> valueAndType = new HashMap<String,Object>();
+                            if (objectTypeLowerCase.startsWith("arraylist")) {
                                 ArrayList<Object> returnedList  = (ArrayList<Object>) returnedInstance;
                                 String arrayListType = (String) returnedList.get(0);
                                 if (arrayListType.equals("string")) {
-                                    this.typedCoreProperties.put(propertyName,(ArrayList<String>) returnedList.get(1));
+                                    valueAndType.put(EEProperties.TYPED_PROPERTY_TYPE,"ArrayList<String>");
+                                    valueAndType.put(EEProperties.TYPED_PROPERTY_VALUE, returnedList.get(1));
                                 }
                                 else if (arrayListType.equals("integer")) {
-                                    this.typedCoreProperties.put(propertyName,(ArrayList<Integer>) returnedList.get(1));
+                                    valueAndType.put(EEProperties.TYPED_PROPERTY_TYPE,"ArrayList<Integer>");
+                                    valueAndType.put(EEProperties.TYPED_PROPERTY_VALUE, returnedList.get(1));
                                 }
+                                this.typedCoreProperties.put(propertyName,valueAndType);
+                            }
+                            else {
+                                valueAndType.put(EEProperties.TYPED_PROPERTY_TYPE,objectType);
+                                valueAndType.put(EEProperties.TYPED_PROPERTY_VALUE,returnedInstance);
+                                this.typedCoreProperties.put(propertyName,valueAndType);
                             }
 
                             
@@ -1599,6 +1595,81 @@ public class EEProperties {
 
         return returnedInstance;
 
+    }
+
+    /**
+     * Get the value of a Typed Property Value
+     *
+     * @param propertyName Property name of the Typed Property to retrieve
+     * @return value of the property as an Object
+     */
+    private Object getTypedPropertyValue(String propertyName) {
+        HashMap<String,Object> typedEntry = this.typedCoreProperties.get(propertyName);
+        if (typedEntry == null) {
+            return null;
+        }
+        return typedEntry.get(EEProperties.TYPED_PROPERTY_VALUE);
+    }
+
+    /**
+     * Set the value of a Typed Property Value
+     *
+     * @param propertyName Property name of the Typed Property to set
+     * @param propertyValue Value of the Typed Property to set
+     */
+    private void setTypedPropertyValue(String propertyName,Object propertyValue) {
+        HashMap<String,Object> typedEntry = this.typedCoreProperties.get(propertyName);
+        if (typedEntry == null) {
+            typedEntry = new HashMap<String,Object>();
+        }
+        typedEntry.put(EEProperties.TYPED_PROPERTY_VALUE,propertyValue);
+        this.typedCoreProperties.put(propertyName,typedEntry);
+    }
+
+    /**
+     * Get the type of a Typed Property Value
+     *
+     * @param propertyName Property name of the Typed Property to retrieve
+     * @return type of the property as an Object
+     */
+    private String getTypedPropertyType(String propertyName) {
+        HashMap<String,Object> typedEntry = this.typedCoreProperties.get(propertyName);
+        if (typedEntry == null) {
+            return null;
+        }
+        return (String) typedEntry.get(EEProperties.TYPED_PROPERTY_TYPE);
+    }
+
+
+    /**
+     * Set the type of a Typed Property Value
+     *
+     * @param propertyName Property name of the Typed Property to set
+     * @param propertyType Type of the Typed Property to set
+     */
+    private void setTypedPropertyType(String propertyName,String propertyType) {
+        HashMap<String,Object> typedEntry = this.typedCoreProperties.get(propertyName);
+        if (typedEntry == null) {
+            typedEntry = new HashMap<String,Object>();
+        }
+        typedEntry.put(EEProperties.TYPED_PROPERTY_TYPE,propertyType);
+        this.typedCoreProperties.put(propertyName,typedEntry);
+    }
+
+    /**
+     * Set the value and type of a Typed Property Value
+     *
+     * @param propertyName Property name of the Typed Property to set
+     * @param propertyType Type of the Typed Property to set
+     */
+    private void setValueAndTypeForTypedropertyValue(String propertyName,Object propertyValue, String propertyType) {
+        HashMap<String,Object> typedEntry = this.typedCoreProperties.get(propertyName);
+        if (typedEntry == null) {
+            typedEntry = new HashMap<String,Object>();
+        }
+        typedEntry.put(EEProperties.TYPED_PROPERTY_TYPE,propertyType);
+        typedEntry.put(EEProperties.TYPED_PROPERTY_VALUE,propertyValue);
+        this.typedCoreProperties.put(propertyName,typedEntry);
     }
 
 

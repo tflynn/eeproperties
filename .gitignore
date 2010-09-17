@@ -2,3 +2,7 @@
 .idea/tasks.xml
 target/
 logs/
+projectFilesBackup
+projectFilesBackup*
+projectFilesBackup/*
+projectFilesBackup*/*
