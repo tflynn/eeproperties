@@ -78,7 +78,7 @@ public class EEPropertiesLoadDefinition {
     /**
      * Convenience method to create and register an entry from an absolute path
      *
-     * @parma absolutePath Absolute path for definition
+     * @param absolutePath Absolute path for definition
      * @return new entry instance
      */
     public static EEPropertiesLoadDefinition createFromAbsolutePath(String absolutePath) {
@@ -95,7 +95,7 @@ public class EEPropertiesLoadDefinition {
      * Convenience method to create and register an entry from an absolute path
      *
      * @param definitionName Definition Name
-     * @parma absolutePath Absolute path for definition
+     * @param absolutePath Absolute path for definition
      * @return new entry instance
      */
     public static EEPropertiesLoadDefinition createFromAbsolutePath(String definitionName, String absolutePath) {
