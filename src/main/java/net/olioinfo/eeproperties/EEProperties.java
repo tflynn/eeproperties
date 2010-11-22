@@ -1357,8 +1357,7 @@ public class EEProperties {
 
             boolean loaded = loadPropertiesFromFileOrClass(this.coreProperties,corePropertiesFileName,EEProperties.class);
             if (loaded) {
-                this.logger.info("EEProperties.loadBootstrapFile bootstrap file loaded successfully. Contents follow.");
-                this.logger.dumpProperties("debug",this.coreProperties);
+                this.logger.info("EEProperties.loadBootstrapFile bootstrap file loaded successfully.");
             }
             else {
                 this.logger.error("EEProperties.loadBootstrapFile bootstrap file failed to load");
@@ -1368,7 +1367,12 @@ public class EEProperties {
             this.runtimeEnvironment = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
                 "net.olioinfo.eeproperties.runtime.environment",options,this.coreProperties,this.runtimeEnvironment);
             this.coreProperties.setProperty("net.olioinfo.eeproperties.runtime.environment",this.runtimeEnvironment);
-            
+
+            if (this.logger.isConsoleTracing()) {
+                this.logger.trace("EEProperties.loadBootstrapFile bootstrap file contents.");
+                this.logger.dumpProperties("trace",this.coreProperties);
+            }
+
 
             String extendedPropertiesSyntaxSetting =  coreProperties.getProperty("net.olioinfo.eeproperties.extendedPropertiesSyntax.enabled");
             if (extendedPropertiesSyntaxSetting != null && extendedPropertiesSyntaxSetting.equals("true")) {
