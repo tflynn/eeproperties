@@ -219,6 +219,7 @@ import java.util.regex.Pattern;
  * @version 2.8
  * @since 2.0
  */
+@SuppressWarnings("unchecked")
 public class EEProperties {
 
     /**
@@ -238,7 +239,7 @@ public class EEProperties {
     /**
      * Singleton instance of EEProperites
      */
-    private static EEProperties instance = new EEProperties();
+    private static EEProperties singletonInstance = null;
 
 
     /**
@@ -299,6 +300,9 @@ public class EEProperties {
      * @param options Hash of options
      */
     public EEProperties(HashMap<String,String> options) {
+        if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
+            System.out.println("consoleTrace: EEProperties: Creating instance of EEProperties");
+        }
         initializeConsoleTracing(options);
         initializeLogging(options);
         loadBootstrapFile(options);
@@ -312,7 +316,13 @@ public class EEProperties {
      * @return Singleton EEProperties instance
      */
     public static EEProperties singleton() {
-        return EEProperties.instance;
+        if (EEProperties.singletonInstance == null) {
+            if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
+                System.out.println("consoleTrace: EEProperties Creating singleton instance of EEProperties");
+            }
+            EEProperties.singletonInstance = new EEProperties();
+        }
+        return EEProperties.singletonInstance;
     }
 
     /**
@@ -1097,7 +1107,7 @@ public class EEProperties {
             EEPropertiesLoadDefinition.sResetRegisteredDefinitions();
 
             // This call does the basic initialization for EEProperties itself - including rereading the bootstrap file and internal logging settings
-            EEProperties.instance = new EEProperties();
+            EEProperties.singletonInstance = new EEProperties();
             
             // Now load the previous definitions in order
             EEProperties.singleton().reloadConfigurations(existingLoadDefinitions);
@@ -1113,10 +1123,10 @@ public class EEProperties {
     private void initializeConsoleTracing(HashMap<String,String> options) {
         boolean consoleTracing = false;
 
-        if (testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
+        if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
             consoleTracing = true;
         }
-        if (testOption(options,"net.olioinfo.eeproperties.consoleTracing","true")) {
+        if (EEProperties.testOption(options,"net.olioinfo.eeproperties.consoleTracing","true")) {
             consoleTracing = true;
         }
         this.logger.setConsoleTracing(consoleTracing);
@@ -1132,9 +1142,9 @@ public class EEProperties {
 
         String eePropertiesLoggingInitialized = System.getProperty("eeProperties.loggingInitialized");
 
-        //this.logger.debug("EProperties.initializeLogging loggingAlreadyBootstrapped " + loggingAlreadyBootstrapped);
-        //if (EEProperties.loggingAlreadyBootstrapped) {
-        if (eePropertiesLoggingInitialized != null) {
+        //this.logger.debug("EProperties.initializeLogging EEProperties.loggingAlreadyBootstrapped " + EEProperties.loggingAlreadyBootstrapped);
+        if (EEProperties.loggingAlreadyBootstrapped) {
+        //if (eePropertiesLoggingInitialized != null) {
             this.logger.debug("EEProperties.initializeLogging bootstrap logging already initialized, skipping ... " + this);
         }
         else {
@@ -1146,10 +1156,10 @@ public class EEProperties {
 
             boolean bootstrapLogging = false;
 
-            if (testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
                 bootstrapLogging = true;
             }
-            if (testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            if (EEProperties.testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
                 bootstrapLogging = true;
             }
 
@@ -1192,14 +1202,14 @@ public class EEProperties {
 
         String eePropertiesLBootstrapLoaded = System.getProperty("eeProperties.bootstrapLoaded");
 
-        //this.logger.debug("EEProperties.loadBootstrapFile configurationAlreadyBootstrapped " + configurationAlreadyBootstrapped);
-        //if (EEProperties.configurationAlreadyBootstrapped) {
-        if (eePropertiesLBootstrapLoaded != null) {
-            this.logger.debug("EEProperties.loadBootstrapFile bootstrap file already loaded, skipping ... " + this);
+        //this.logger.debug("EEProperties.loadBootstrapFile EEProperties.configurationAlreadyBootstrapped " + EEProperties.configurationAlreadyBootstrapped);
+        if (EEProperties.configurationAlreadyBootstrapped) {
+        //if (eePropertiesLBootstrapLoaded != null) {
+            this.logger.trace("EEProperties.loadBootstrapFile bootstrap file already loaded, skipping ... " + this);
         }
         else {
 
-            System.setProperty("eeProperties.bootstrapLoaded","true");
+            //System.setProperty("eeProperties.bootstrapLoaded","true");
             
             EEProperties.configurationAlreadyBootstrapped = true;
 
@@ -1256,7 +1266,7 @@ public class EEProperties {
      * @param propertyValue Value to check against
      * @return boolean true if value matches, false otherwise
      */
-    private boolean testSystemProperty(String propertyName, String propertyValue) {
+    public static boolean testSystemProperty(String propertyName, String propertyValue) {
         return (System.getProperty(propertyName) != null) && (System.getProperty(propertyName).equals(propertyValue));
     }
 
@@ -1268,7 +1278,7 @@ public class EEProperties {
      * @param optionValue Value to check against
      * @return boolean true if value matches, false otherwise
      */
-    private boolean testOption(HashMap<String,String> options , String optionName,String optionValue) {
+    public static boolean testOption(HashMap<String,String> options , String optionName,String optionValue) {
         return ((options != null) && options.get(optionName) != null) && (options.get(optionName).equals(optionValue));
     }
 
