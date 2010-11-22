@@ -1242,7 +1242,8 @@ public class EEProperties {
 
             this.runtimeEnvironment = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
                 "net.olioinfo.eeproperties.runtime.environment",options,this.coreProperties,this.runtimeEnvironment);
-
+            this.coreProperties.setProperty("net.olioinfo.eeproperties.runtime.environment",this.runtimeEnvironment);
+            
 
             String extendedPropertiesSyntaxSetting =  coreProperties.getProperty("net.olioinfo.eeproperties.extendedPropertiesSyntax.enabled");
             if (extendedPropertiesSyntaxSetting != null && extendedPropertiesSyntaxSetting.equals("true")) {
