@@ -311,12 +311,19 @@ public class EEProperties {
      * @param options Hash of options
      */
     public EEProperties(HashMap<String,String> options) {
+        if (options != null && options.get("net.olioinfo.eeproperties.runtime.environment") != null) {
+            this.runtimeEnvironment =  (String) options.get("net.olioinfo.eeproperties.runtime.environment");
+            this.coreProperties.put("net.olioinfo.eeproperties.runtime.environment",this.runtimeEnvironment);            
+        }
         if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
             System.out.println("consoleTrace: EEProperties: Creating instance of EEProperties");
         }
         initializeConsoleTracing(options);
         initializeLogging(options);
         loadBootstrapFile(options);
+
+
+
     }
 
     
