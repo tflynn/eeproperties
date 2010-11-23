@@ -1246,6 +1246,7 @@ public class EEProperties {
             if (this.logger.isConsoleTracing()) {
                 this.logger.trace("EEProperties.loadBootstrapFile bootstrap file contents.");
                 this.logger.dumpProperties("trace",this.coreProperties);
+                this.logger.trace(String.format("EEProperties.loadBootstrapFile effective environment now set to %s",this.runtimeEnvironment));
             }
 
 
