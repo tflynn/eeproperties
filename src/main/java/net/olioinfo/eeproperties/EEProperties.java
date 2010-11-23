@@ -317,6 +317,7 @@ public class EEProperties {
         }
         if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
             System.out.println("consoleTrace: EEProperties: Creating instance of EEProperties");
+            System.out.println(String.format("consoleTrace: EEProperties: Runtime environment set to %s",this.runtimeEnvironment));
         }
         initializeConsoleTracing(options);
         initializeLogging(options);
@@ -477,7 +478,14 @@ public class EEProperties {
 
         ArrayList<String> names = new ArrayList<String>();
         names.add("defaults");
-        names.add(this.runtimeEnvironment);
+        String currentRuntimeEnvironemnt = null;
+        if (options.get("net.olioinfo.eeproperties.runtime.environment") != null) {
+            currentRuntimeEnvironemnt = (String) options.get("net.olioinfo.eeproperties.runtime.environment");
+        }
+        if (currentRuntimeEnvironemnt == null) {
+            currentRuntimeEnvironemnt = this.runtimeEnvironment;
+        }
+        names.add(currentRuntimeEnvironemnt);
 
         loadAndMergeConfigurations(names,klass,properties,options);
 
