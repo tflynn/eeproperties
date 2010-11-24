@@ -340,7 +340,12 @@ public class EEPropertiesAvailableLogger {
      * @param msg Message to trace
      */
     private void consoleTrace(String msg) {
-        if (this.consoleTracing) System.out.println("consoleTrace: " + msg);
+        String[] parts = this.toString().split("@");
+        if (this.consoleTracing) {
+            System.out.println("consoleTrace: (" + parts[1] + ") " + msg);
+            System.out.flush();
+        }
+
     }
     
 
