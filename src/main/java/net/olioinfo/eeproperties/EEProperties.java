@@ -287,17 +287,8 @@ public class EEProperties {
     private ArrayList<String> searchPathsList = new ArrayList<String>();
 
 
-    /**
-     * Has the EEProperties configuration system been bootstrapped yet?
-     */
-    public static boolean configurationAlreadyBootstrapped = false;
+    private String uniqueId = null;
 
-    /**
-     * Has the EEProperties logging system been bootstrapped yet?
-     */
-    public static boolean loggingAlreadyBootstrapped = false;
-
-    
     /**
      * Construct an instance of EEProperties
      */
@@ -311,13 +302,11 @@ public class EEProperties {
      * @param options Hash of options
      */
     public EEProperties(HashMap<String,String> options) {
-        if (options != null && options.get("net.olioinfo.eeproperties.runtime.environment") != null) {
-            this.runtimeEnvironment =  (String) options.get("net.olioinfo.eeproperties.runtime.environment");
-            this.coreProperties.put("net.olioinfo.eeproperties.runtime.environment",this.runtimeEnvironment);            
-        }
+
         if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
-            System.out.println("consoleTrace: EEProperties: Creating instance of EEProperties");
-            System.out.println(String.format("consoleTrace: EEProperties: Runtime environment set to %s",this.runtimeEnvironment));
+            String[] parts = this.toString().split("@");
+            System.out.println(String.format("consoleTrace: (%s) EEProperties: Creating instance of EEProperties",parts[1]));
+            System.out.println(String.format("consoleTrace: (%s) EEProperties: Runtime environment set to %s",parts[1],this.runtimeEnvironment));
         }
         initializeConsoleTracing(options);
         initializeLogging(options);
@@ -337,7 +326,7 @@ public class EEProperties {
     public static EEProperties singleton() {
         if (EEProperties.singletonInstance == null) {
             if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.consoleTracing","true")) {
-                System.out.println("consoleTrace: EEProperties Creating singleton instance of EEProperties");
+                System.out.println(String.format("consoleTrace: EEProperties: Creating singleton instance of EEProperties"));
             }
             EEProperties.singletonInstance = new EEProperties();
         }
@@ -479,9 +468,9 @@ public class EEProperties {
         ArrayList<String> names = new ArrayList<String>();
         names.add("defaults");
         String currentRuntimeEnvironemnt = null;
-        if (options.get("net.olioinfo.eeproperties.runtime.environment") != null) {
-            currentRuntimeEnvironemnt = (String) options.get("net.olioinfo.eeproperties.runtime.environment");
-        }
+//        if (options.get("net.olioinfo.eeproperties.runtime.environment") != null) {
+//            currentRuntimeEnvironemnt = (String) options.get("net.olioinfo.eeproperties.runtime.environment");
+//        }
         if (currentRuntimeEnvironemnt == null) {
             currentRuntimeEnvironemnt = this.runtimeEnvironment;
         }
@@ -1280,57 +1269,44 @@ public class EEProperties {
      */
     private void initializeLogging(HashMap<String,String> options) {
 
-        String eePropertiesLoggingInitialized = System.getProperty("eeProperties.loggingInitialized");
+        this.logger.debug("EEproperties.initializeLogging: Entering... ");
 
-        //this.logger.debug("EProperties.initializeLogging EEProperties.loggingAlreadyBootstrapped " + EEProperties.loggingAlreadyBootstrapped);
-        if (EEProperties.loggingAlreadyBootstrapped) {
-        //if (eePropertiesLoggingInitialized != null) {
-            this.logger.debug("EEProperties.initializeLogging bootstrap logging already initialized, skipping ... " + this);
+        boolean bootstrapLogging = false;
+
+        if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            bootstrapLogging = true;
         }
-        else {
-
-            System.setProperty("eeProperties.loggingInitialized","true");
-            EEProperties.loggingAlreadyBootstrapped = true;
-            
-            this.logger.debug("EEproperties.initializeLogging: Entering... " + this);
-
-            boolean bootstrapLogging = false;
-
-            if (EEProperties.testSystemProperty("net.olioinfo.eeproperties.bootstrapLogging","true")) {
-                bootstrapLogging = true;
-            }
-            if (EEProperties.testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
-                bootstrapLogging = true;
-            }
-
-            String bootstrapPropertiesFileName =  EEProperties.LOGJ4_BOOTSTRAP_PROPERTIES;
-            if (bootstrapLogging) {
-                String overrideBootstrapPropertiesFileName = System.getProperty("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
-                if (overrideBootstrapPropertiesFileName != null) {
-                    bootstrapPropertiesFileName = overrideBootstrapPropertiesFileName;
-                }
-                if ( (options != null ) && options.containsKey("net.olioinfo.eeproperties.bootstrapLogging.configurationFile") ) {
-                    bootstrapPropertiesFileName = options.get("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
-                }
-            }
-
-
-            if (bootstrapLogging) {
-                Properties log4jBootstrapProperties = new Properties();
-                boolean loaded = loadPropertiesFromFileOrClass(log4jBootstrapProperties,bootstrapPropertiesFileName,EEProperties.class);
-                if (loaded) {
-                    org.apache.log4j.PropertyConfigurator.configure(log4jBootstrapProperties);
-                    this.logger.debug(String.format("EEproperties.initializeLogging: Bootstrap logging successfully configured using log4j settings %s",bootstrapPropertiesFileName));
-                    this.logger.dumpProperties("trace",log4jBootstrapProperties);
-                    this.logger.setBootstrapLogging(true);
-                    this.logger.debug("EEproperties.initializeLogging: Bootstrap logging successfully initialized");
-                }
-                else {
-                    this.logger.error("EEproperties.initializeLogging: error initializing bootstrap logging");
-                }
-            }
-
+        if (EEProperties.testOption(options,"net.olioinfo.eeproperties.bootstrapLogging","true")) {
+            bootstrapLogging = true;
         }
+
+        String bootstrapPropertiesFileName =  EEProperties.LOGJ4_BOOTSTRAP_PROPERTIES;
+        if (bootstrapLogging) {
+            String overrideBootstrapPropertiesFileName = System.getProperty("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
+            if (overrideBootstrapPropertiesFileName != null) {
+                bootstrapPropertiesFileName = overrideBootstrapPropertiesFileName;
+            }
+            if ( (options != null ) && options.containsKey("net.olioinfo.eeproperties.bootstrapLogging.configurationFile") ) {
+                bootstrapPropertiesFileName = options.get("net.olioinfo.eeproperties.bootstrapLogging.configurationFile");
+            }
+        }
+
+
+        if (bootstrapLogging) {
+            Properties log4jBootstrapProperties = new Properties();
+            boolean loaded = loadPropertiesFromFileOrClass(log4jBootstrapProperties,bootstrapPropertiesFileName,EEProperties.class);
+            if (loaded) {
+                org.apache.log4j.PropertyConfigurator.configure(log4jBootstrapProperties);
+                this.logger.debug(String.format("EEproperties.initializeLogging: Bootstrap logging successfully configured using log4j settings %s",bootstrapPropertiesFileName));
+                this.logger.dumpProperties("trace",log4jBootstrapProperties);
+                this.logger.setBootstrapLogging(true);
+                this.logger.debug("EEproperties.initializeLogging: Bootstrap logging successfully initialized");
+            }
+            else {
+                this.logger.error("EEproperties.initializeLogging: error initializing bootstrap logging");
+            }
+        }
+
     }
 
     /**
@@ -1340,67 +1316,54 @@ public class EEProperties {
      */
     private void loadBootstrapFile(HashMap<String,String> options) {
 
-        String eePropertiesLBootstrapLoaded = System.getProperty("eeProperties.bootstrapLoaded");
 
-        //this.logger.debug("EEProperties.loadBootstrapFile EEProperties.configurationAlreadyBootstrapped " + EEProperties.configurationAlreadyBootstrapped);
-        if (EEProperties.configurationAlreadyBootstrapped) {
-        //if (eePropertiesLBootstrapLoaded != null) {
-            this.logger.trace("EEProperties.loadBootstrapFile bootstrap file already loaded, skipping ... " + this);
+        this.logger.debug("EEProperties.loadBootstrapFile: Entering... ");
+
+        // Figure out what the name of the bootstrap configuration file is
+
+        String corePropertiesFileName = EEProperties.CORE_CONFIGURATION_FILE_NAME_FQ;
+
+        String systemProperty = System.getProperty("net.olioinfo.eeproperties.bootstrap.fileName");
+        if ( systemProperty != null ) {
+            corePropertiesFileName = systemProperty;
+        }
+
+        if (options != null && options.containsKey("net.olioinfo.eeproperties.bootstrap.fileName")) {
+            corePropertiesFileName = options.get("net.olioinfo.eeproperties.bootstrap.fileName");
+        }
+
+        this.logger.debug(String.format("EEProperties.loadBootstrapFile bootstrap file name %s",corePropertiesFileName));
+
+        boolean loaded = loadPropertiesFromFileOrClass(this.coreProperties,corePropertiesFileName,EEProperties.class);
+        if (loaded) {
+            this.logger.info("EEProperties.loadBootstrapFile bootstrap file loaded successfully.");
         }
         else {
-
-            //System.setProperty("eeProperties.bootstrapLoaded","true");
-            
-            EEProperties.configurationAlreadyBootstrapped = true;
-
-            this.logger.debug("EEProperties.loadBootstrapFile: Entering... " + this);
-            
-            // Figure out what the name of the bootstrap configuration file is
-
-            String corePropertiesFileName = EEProperties.CORE_CONFIGURATION_FILE_NAME_FQ;
-
-            String systemProperty = System.getProperty("net.olioinfo.eeproperties.bootstrap.fileName");
-            if ( systemProperty != null ) {
-                corePropertiesFileName = systemProperty;
-            }
-
-            if (options != null && options.containsKey("net.olioinfo.eeproperties.bootstrap.fileName")) {
-                corePropertiesFileName = options.get("net.olioinfo.eeproperties.bootstrap.fileName");
-            }
-
-            this.logger.debug(String.format("EEProperties.loadBootstrapFile bootstrap file name %s",corePropertiesFileName));
-
-            boolean loaded = loadPropertiesFromFileOrClass(this.coreProperties,corePropertiesFileName,EEProperties.class);
-            if (loaded) {
-                this.logger.info("EEProperties.loadBootstrapFile bootstrap file loaded successfully.");
-            }
-            else {
-                this.logger.error("EEProperties.loadBootstrapFile bootstrap file failed to load");
-            }
-
-
-            this.runtimeEnvironment = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
-                "net.olioinfo.eeproperties.runtime.environment",options,this.coreProperties,this.runtimeEnvironment);
-            this.coreProperties.setProperty("net.olioinfo.eeproperties.runtime.environment",this.runtimeEnvironment);
-
-            if (this.logger.isConsoleTracing()) {
-                this.logger.trace("EEProperties.loadBootstrapFile bootstrap file contents.");
-                this.logger.dumpProperties("trace",this.coreProperties);
-                this.logger.trace(String.format("EEProperties.loadBootstrapFile effective environment now set to %s",this.runtimeEnvironment));
-            }
-
-
-            String extendedPropertiesSyntaxSetting =  coreProperties.getProperty("net.olioinfo.eeproperties.extendedPropertiesSyntax.enabled");
-            if (extendedPropertiesSyntaxSetting != null && extendedPropertiesSyntaxSetting.equals("true")) {
-                this.extendedPropertiesSyntax = true;
-            }
-
-            String additionalPathsAsString = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
-                "net.olioinfo.eeproperties.runtime.additionalConfigurationPaths",options,this.coreProperties,null);
-
-            this.searchPathsList.addAll(parseSearchPaths(additionalPathsAsString));
-
+            this.logger.error("EEProperties.loadBootstrapFile bootstrap file failed to load");
         }
+
+
+        this.runtimeEnvironment = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
+            "net.olioinfo.eeproperties.runtime.environment",options,this.coreProperties,this.runtimeEnvironment);
+        this.coreProperties.setProperty("net.olioinfo.eeproperties.runtime.environment",this.runtimeEnvironment);
+
+        if (this.logger.isConsoleTracing()) {
+            this.logger.trace("EEProperties.loadBootstrapFile bootstrap file contents.");
+            this.logger.dumpProperties("trace",this.coreProperties);
+            this.logger.trace(String.format("EEProperties.loadBootstrapFile effective environment now set to %s",this.runtimeEnvironment));
+        }
+
+
+        String extendedPropertiesSyntaxSetting =  coreProperties.getProperty("net.olioinfo.eeproperties.extendedPropertiesSyntax.enabled");
+        if (extendedPropertiesSyntaxSetting != null && extendedPropertiesSyntaxSetting.equals("true")) {
+            this.extendedPropertiesSyntax = true;
+        }
+
+        String additionalPathsAsString = getPropertyFromOptionsOrSystemOrPropertiesWithDefault(
+            "net.olioinfo.eeproperties.runtime.additionalConfigurationPaths",options,this.coreProperties,null);
+
+        this.searchPathsList.addAll(parseSearchPaths(additionalPathsAsString));
+
 
     }
 
@@ -1849,8 +1812,7 @@ public class EEProperties {
         outputString = outputString.replaceFirst("\\s*$","");
         return outputString;
     }
-    
-    
+
     /**
      * Run standalone for testing purposes
      */
