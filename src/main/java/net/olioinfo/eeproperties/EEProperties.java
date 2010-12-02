@@ -1769,23 +1769,13 @@ public class EEProperties {
      * @return Properties object with all properties substituted
      */
     private Properties substituteAll(Properties existingProperties) {
-        boolean checkForSubstitutions = true;
-        while (checkForSubstitutions) {
-            boolean moreSubstitutionsNeeded = false;
-            Set<String> propertyNames = existingProperties.stringPropertyNames();
-            for (String propertyName : propertyNames) {
-                String propertyValue =  existingProperties.getProperty(propertyName);
-                String substitutedName = EEProperties.substituteVariables(propertyName,existingProperties);
-                existingProperties.setProperty(substitutedName,propertyValue);
-                String substitutedValue = EEProperties.substituteVariables(propertyValue,existingProperties);
-                if ( (substitutedName.indexOf("${",0) > -1 ) || (substitutedValue.indexOf("${",0) > -1 ) ) {
-                    moreSubstitutionsNeeded = true;
-                }
-                existingProperties.setProperty(substitutedName,substitutedValue);
-            }
-            if (!moreSubstitutionsNeeded) {
-                checkForSubstitutions = false;
-            }
+        Set<String> propertyNames = existingProperties.stringPropertyNames();
+        for (String propertyName : propertyNames) {
+            String propertyValue =  existingProperties.getProperty(propertyName);
+            String substitutedName = EEProperties.substituteVariables(propertyName,existingProperties);
+            existingProperties.setProperty(substitutedName,propertyValue);
+            String substitutedValue = EEProperties.substituteVariables(propertyValue,existingProperties);
+            existingProperties.setProperty(substitutedName,substitutedValue);
         }
         return existingProperties;
 
