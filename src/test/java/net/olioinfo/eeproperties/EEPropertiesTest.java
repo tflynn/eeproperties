@@ -250,6 +250,29 @@ public class EEPropertiesTest  extends TestCase {
         
     }
 
+    public void testSubstituteAll() {
+
+        Properties testProperties;
+        String testString;
+        String substitutedString;
+        String expectedSubstitutedString;
+
+        testProperties = new Properties();
+
+
+        testProperties.setProperty("net.olioinfo.eeproperties.url","http://eeproperties.olioinfo.net");
+        testProperties.setProperty("net.olioinfo.eeproperties.url2","${net.olioinfo.eeproperties.url}/url2");
+        testProperties.setProperty("net.olioinfo.eeproperties.url3","${net.olioinfo.eeproperties.url}?url=${net.olioinfo.eeproperties.url2}");
+
+        Properties substitutedProperties = EEProperties.substituteAll(testProperties);
+        assert(substitutedProperties.get("net.olioinfo.eeproperties.url").equals("http://eeproperties.olioinfo.net"));
+        assert(substitutedProperties.get("net.olioinfo.eeproperties.url2").equals("http://eeproperties.olioinfo.net/url2"));
+        assert(substitutedProperties.get("net.olioinfo.eeproperties.url3").equals("http://eeproperties.olioinfo.net?url=http://eeproperties.olioinfo.net/url2"));
+
+
+    }
+
+
     public void testReLoad() {
         HashMap<String,String> options = new HashMap<String,String>();
         options.put("net.olioinfo.eeproperties.configurationFile.prefix","test-");

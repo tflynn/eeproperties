@@ -195,7 +195,10 @@ import java.util.regex.Pattern;
  *
  * <ul><li>-Dnet.olioinfo.eeproperties.bootstrapLogging.configurationFile=[fully qualified file name]</li></ul>
  *
-
+ * <p>To override the maximum number of substitution passes performed - by default 5 - specify:</p>
+ *
+ * <ul><li>-Dnet.olioinfo.eeproperties.maximumSubstitutionPasses=10</li></ul>
+ *
  * <h3>Exception handling</h3>
  * <p>No methods throw exceptions. Instead, exceptions will be logged. So, if something doesn't appear to be working
  * correctly, enable some of the logging options listed above to isolate the problem.</p>
@@ -287,6 +290,12 @@ public class EEProperties {
     private ArrayList<String> searchPathsList = new ArrayList<String>();
 
 
+    /**
+     * Maximum number of passes when attempting substitutions
+     */
+    private static Integer maximumSubstitutionPasses = 5;
+    
+
     private String uniqueId = null;
 
     /**
@@ -311,6 +320,19 @@ public class EEProperties {
         initializeConsoleTracing(options);
         initializeLogging(options);
         loadBootstrapFile(options);
+
+        if (System.getProperty("net.olioinfo.eeproperties.maximumSubstitutionPasses") != null) {
+            Integer maxPasses = null;
+            try {
+                maxPasses = Integer.parseInt(System.getProperty("net.olioinfo.eeproperties.maximumSubstitutionPasses"));
+            }
+            catch (Exception ex) {
+                maxPasses = null;
+            }
+            if (maxPasses != null) {
+                EEProperties.maximumSubstitutionPasses = maxPasses;
+            }
+        }
 
 
 
@@ -1466,7 +1488,7 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
-                    newProperties = substituteAll(newProperties);
+                    newProperties = EEProperties.substituteAll(newProperties);
                     convertToObjectInstances(newProperties);
                     addAll(properties,newProperties);
                     is.close();
@@ -1513,7 +1535,7 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
-                    newProperties = substituteAll(newProperties);
+                    newProperties = EEProperties.substituteAll(newProperties);
                     convertToObjectInstances(newProperties);
                     properties = addAll(properties,newProperties);
                     is.close();
@@ -1538,7 +1560,7 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
-                    newProperties = substituteAll(newProperties);
+                    newProperties = EEProperties.substituteAll(newProperties);
                     convertToObjectInstances(newProperties);
                     addAll(properties,newProperties);
                     is.close();
@@ -1768,14 +1790,27 @@ public class EEProperties {
      * @param existingProperties Existing properties (this is the instance to which properties are added)
      * @return Properties object with all properties substituted
      */
-    private Properties substituteAll(Properties existingProperties) {
-        Set<String> propertyNames = existingProperties.stringPropertyNames();
-        for (String propertyName : propertyNames) {
-            String propertyValue =  existingProperties.getProperty(propertyName);
-            String substitutedName = EEProperties.substituteVariables(propertyName,existingProperties);
-            existingProperties.setProperty(substitutedName,propertyValue);
-            String substitutedValue = EEProperties.substituteVariables(propertyValue,existingProperties);
-            existingProperties.setProperty(substitutedName,substitutedValue);
+    public static Properties substituteAll(Properties existingProperties) {
+        Integer totalPasses = 0;
+        boolean incompleteSubstitutionsFound = true;
+        while (incompleteSubstitutionsFound) {
+            incompleteSubstitutionsFound = false;
+            totalPasses = totalPasses + 1;
+            Set<String> propertyNames = existingProperties.stringPropertyNames();
+            for (String propertyName : propertyNames) {
+                String propertyValue =  existingProperties.getProperty(propertyName);
+                String substitutedName = EEProperties.substituteVariables(propertyName,existingProperties);
+                existingProperties.setProperty(substitutedName,propertyValue);
+                String substitutedValue = EEProperties.substituteVariables(propertyValue,existingProperties);
+                existingProperties.setProperty(substitutedName,substitutedValue);
+                if ( (substitutedName.indexOf("${",0) > -1 ) || (substitutedValue.indexOf("${",0) > -1 ) ) {
+                   //System.out.println(String.format("EEProperties Incomplete substitution %s=%s",substitutedName, substitutedValue));
+                   incompleteSubstitutionsFound = true;
+                }
+            }
+            if (totalPasses > EEProperties.maximumSubstitutionPasses ) {
+                break;
+            }
         }
         return existingProperties;
 
