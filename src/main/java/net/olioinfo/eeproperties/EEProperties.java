@@ -432,7 +432,10 @@ public class EEProperties {
             loadPropertiesFromLocationsOrClass(properties,this.searchPathsList,environmentFileName,klass);
         }
         //TODO Substitution needs to happen after all files are loaded
-        
+        properties = EEProperties.substituteAll(properties);
+        convertToObjectInstances(properties);
+
+
     }
 
     /**
@@ -495,7 +498,9 @@ public class EEProperties {
      * @param printStream PrintStream to output properties to
      */
     public void listProperties(PrintStream printStream) {
-        this.coreProperties.list(printStream);
+        for (String propertyName : this.coreProperties.stringPropertyNames()) {
+            printStream.println(String.format("%s=%s",propertyName, this.coreProperties.getProperty(propertyName)));
+        }
     }
 
 
@@ -1473,8 +1478,8 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
-                    newProperties = EEProperties.substituteAll(newProperties);
-                    convertToObjectInstances(newProperties);
+                    //newProperties = EEProperties.substituteAll(newProperties);
+                    //convertToObjectInstances(newProperties);
                     addAll(properties,newProperties);
                     is.close();
                     returnStatus = true;
@@ -1520,8 +1525,8 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
-                    newProperties = EEProperties.substituteAll(newProperties);
-                    convertToObjectInstances(newProperties);
+                    //newProperties = EEProperties.substituteAll(newProperties);
+                    //convertToObjectInstances(newProperties);
                     properties = addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
@@ -1545,8 +1550,8 @@ public class EEProperties {
                     Properties newProperties = new Properties();
                     newProperties.load(is);
                     newProperties = stripAllLeadingTrailingWhiteSpace(newProperties);
-                    newProperties = EEProperties.substituteAll(newProperties);
-                    convertToObjectInstances(newProperties);
+                    //newProperties = EEProperties.substituteAll(newProperties);
+                    //convertToObjectInstances(newProperties);
                     addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
