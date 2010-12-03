@@ -195,10 +195,6 @@ import java.util.regex.Pattern;
  *
  * <ul><li>-Dnet.olioinfo.eeproperties.bootstrapLogging.configurationFile=[fully qualified file name]</li></ul>
  *
- * <p>To override the maximum number of substitution passes performed - by default 5 - specify:</p>
- *
- * <ul><li>-Dnet.olioinfo.eeproperties.maximumSubstitutionPasses=10</li></ul>
- *
  * <h3>Exception handling</h3>
  * <p>No methods throw exceptions. Instead, exceptions will be logged. So, if something doesn't appear to be working
  * correctly, enable some of the logging options listed above to isolate the problem.</p>
@@ -290,12 +286,6 @@ public class EEProperties {
     private ArrayList<String> searchPathsList = new ArrayList<String>();
 
 
-    /**
-     * Maximum number of passes when attempting substitutions
-     */
-    private static Integer maximumSubstitutionPasses = 5;
-    
-
     private String uniqueId = null;
 
     /**
@@ -320,20 +310,6 @@ public class EEProperties {
         initializeConsoleTracing(options);
         initializeLogging(options);
         loadBootstrapFile(options);
-
-        if (System.getProperty("net.olioinfo.eeproperties.maximumSubstitutionPasses") != null) {
-            Integer maxPasses = null;
-            try {
-                maxPasses = Integer.parseInt(System.getProperty("net.olioinfo.eeproperties.maximumSubstitutionPasses"));
-            }
-            catch (Exception ex) {
-                maxPasses = null;
-            }
-            if (maxPasses != null) {
-                EEProperties.maximumSubstitutionPasses = maxPasses;
-            }
-        }
-
 
 
     }
@@ -1063,7 +1039,7 @@ public class EEProperties {
      * in that order. If no match is found, the variable is left unmodified
      *
      * @param inputString String with possible variable substitution patterns
-     * @return String with substitutions if available
+     * @return String with substitutions or null if no substitutions
      * @since 2.5
      */
     public static String substituteVariables(String inputString, Properties properties) {
@@ -1074,6 +1050,7 @@ public class EEProperties {
         int matchPos;
         int startPos = 0;
         int endPos = inputString.length() - 1;
+        boolean anySubstitution = false;
         while ( ( matchPos = inputString.indexOf("${",startPos)) != -1 ) {
             String beforeVariable = inputString.substring(startPos,matchPos);
             int varNameEnd = inputString.indexOf("}",matchPos + 2);
@@ -1081,12 +1058,15 @@ public class EEProperties {
             String substitutionValue = null;
             if (System.getProperty(varName) != null) {
                 substitutionValue = System.getProperty(varName);
+                anySubstitution = true;
             }
             else if (System.getenv(varName) != null ) {
                 substitutionValue = System.getenv(varName);
+                anySubstitution = true;
             }
             else if (properties != null && properties.getProperty(varName) != null) {
                 substitutionValue = properties.getProperty(varName);
+                anySubstitution = true;
             }
             if (substitutionValue == null) {
                 substitutionValue = String.format("${%s}",varName);
@@ -1097,7 +1077,12 @@ public class EEProperties {
         if (startPos <= endPos) {
            returnedStringBuf.append(inputString.substring(startPos));
         }
-        return returnedStringBuf.toString(); 
+        if (anySubstitution) {
+            return returnedStringBuf.toString();
+        }
+        else {
+            return null;
+        }
     }
 
     /**
@@ -1792,28 +1777,32 @@ public class EEProperties {
      */
     public static Properties substituteAll(Properties existingProperties) {
         Integer totalPasses = 0;
-        boolean incompleteSubstitutionsFound = true;
-        while (incompleteSubstitutionsFound) {
-            incompleteSubstitutionsFound = false;
+        boolean anySubstitutionFound = true;
+        while (anySubstitutionFound ) {
+            anySubstitutionFound = false;
             totalPasses = totalPasses + 1;
             Set<String> propertyNames = existingProperties.stringPropertyNames();
             for (String propertyName : propertyNames) {
                 String propertyValue =  existingProperties.getProperty(propertyName);
                 String substitutedName = EEProperties.substituteVariables(propertyName,existingProperties);
+                if (substitutedName == null ) {
+                  substitutedName = propertyName;
+                }
+                else {
+                  anySubstitutionFound = true;
+                }
                 existingProperties.setProperty(substitutedName,propertyValue);
                 String substitutedValue = EEProperties.substituteVariables(propertyValue,existingProperties);
-                existingProperties.setProperty(substitutedName,substitutedValue);
-                if ( (substitutedName.indexOf("${",0) > -1 ) || (substitutedValue.indexOf("${",0) > -1 ) ) {
-                   //System.out.println(String.format("EEProperties Incomplete substitution %s=%s",substitutedName, substitutedValue));
-                   incompleteSubstitutionsFound = true;
+                if (substitutedValue == null) {
+                    substitutedValue = propertyValue;
                 }
-            }
-            if (totalPasses > EEProperties.maximumSubstitutionPasses ) {
-                break;
+                else {
+                    anySubstitutionFound = true;
+                }
+                existingProperties.setProperty(substitutedName,substitutedValue);
             }
         }
         return existingProperties;
-
         
     }
 
