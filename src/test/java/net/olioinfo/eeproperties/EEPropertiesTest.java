@@ -182,7 +182,7 @@ public class EEPropertiesTest  extends TestCase {
         // Test null case first
         testString = "abcdef";
         substitutedString = EEProperties.substituteVariables(testString,null);
-        assert(testString.equals(substitutedString));
+        assert(substitutedString == null);
         
         // Test one value at start, in middle and at end
         System.setProperty("var1","value1");
