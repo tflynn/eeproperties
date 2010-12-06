@@ -410,6 +410,8 @@ public class EEProperties {
      */
     public void loadAndMergeConfigurations(ArrayList<String> environmentNames,Class klass, Properties properties,HashMap<String,String> options) {
 
+    	EEPropertiesLoadDefinition.createAndRegisterLoadDefinition(environmentNames, klass, properties, options);
+    	
         //Check for addtional search paths in the options
         if (options != null && options.containsKey("net.olioinfo.eeproperties.runtime.additionalConfigurationPaths")) {
             this.searchPathsList.addAll(parseSearchPaths(options.get("net.olioinfo.eeproperties.runtime.additionalConfigurationPaths")));
@@ -1105,13 +1107,14 @@ public class EEProperties {
             loadDefinitions = EEPropertiesLoadDefinition.getRegisteredDefinitions();
         }
         for (EEPropertiesLoadDefinition loadDefinition : loadDefinitions ) {
-           if (loadDefinition.getEntryType() == EEPropertiesLoadDefinition.DEFINITION_TYPE_ABSOLUTE_PATH) {
-                loadPropertiesFromFileOrClass(this.coreProperties,loadDefinition.getEntryPath(),null);
-           }
-           else if (loadDefinition.getEntryType() == EEPropertiesLoadDefinition.DEFINITION_TYPE_CLASS_RELATIVE) {
-               loadPropertiesFromFileOrClass(this.coreProperties,loadDefinition.getEntryPath(),loadDefinition.getEntryClass());
-           }
+        	EEProperties.singleton().loadAndMergeConfigurations(
+        			loadDefinition.getEnvironmentNames(),
+        			loadDefinition.getClassContext(),
+        			loadDefinition.getProperties(),
+        			loadDefinition.getOptions());
         }
+        
+        
     }
 
     /**
@@ -1460,14 +1463,12 @@ public class EEProperties {
                     if (fileName.startsWith("/")) {
                         if ((new File(fileName).exists())) {
                             is = new FileInputStream(fileName);
-                            EEPropertiesLoadDefinition.createFromAbsolutePath(fileName);
                         }
                     }
                     else if (klass != null) {
                         URL url = klass.getResource(fileName);
                         if (url != null) {
                             is = url.openStream();
-                            EEPropertiesLoadDefinition.createFromClass(klass,fileName);
                         }
                     }
                 }
@@ -1530,7 +1531,6 @@ public class EEProperties {
                     properties = addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
-                    EEPropertiesLoadDefinition.createFromAbsolutePath(fullFileName);
                     logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded class %s from %s",fileName,fullFileName));
                 }
                 catch (Exception ex) {
@@ -1555,7 +1555,6 @@ public class EEProperties {
                     addAll(properties,newProperties);
                     is.close();
                     fileFound = true;
-                    EEPropertiesLoadDefinition.createFromClass(klass,fileName);
                     logger.debug(String.format("EEProperties.loadPropertiesFromLocationsOrClass Loaded file %s relative to class %s",fileName,klass.getName()));
                 }
                 catch (Exception ex) {
