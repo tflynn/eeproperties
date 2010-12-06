@@ -15,7 +15,9 @@
 package net.olioinfo.eeproperties;
 
 import java.util.ArrayList;
-
+import java.util.HashMap;
+import java.util.Properties;
+import java.util.Enumeration;
 
 /**
  * Bean to track where particular settings were loaded from
@@ -26,46 +28,30 @@ import java.util.ArrayList;
 public class EEPropertiesLoadDefinition {
 
     /**
-     * Indicates entry was loaded from an absolute path
-     */
-    public static final Integer DEFINITION_TYPE_ABSOLUTE_PATH = 1;
-
-    /**
-     * Indicates entry was loaded path relative
-     */
-    public static final Integer DEFINITION_TYPE_CLASS_RELATIVE = 2;
-
-    
-
-    /**
-     * Name for the entry
-     */
-    private String entryName = null;
-
-    /**
-     * Entry type
-     */
-    private Integer entryType = null;
-
-
-    /**
-     * Entry Path - for entry loaded from absolute path
-     */
-    private String entryPath = null;
-
-
-    /**
-     * Entry class - for entry loaded from class
-     */
-    private Class entryClass = null;
-
-
-    /**
      * Registered list of entries
      */
     private static ArrayList<EEPropertiesLoadDefinition> REGISTERED_ENTRIES = new  ArrayList<EEPropertiesLoadDefinition>();
     
-
+    /**
+     * List of environment names
+     */
+    private ArrayList<String> environmentNames = new ArrayList<String>();
+    
+    /**
+     * Context class
+     */
+    private Class klass = null;
+    
+    /**
+     * Properties
+     */
+    private Properties properties = new Properties();
+    
+    /**
+     * Options
+     */
+    private HashMap<String,String> options = new HashMap<String,String>();
+    
     /**
      * Create a new instance of a loader definition
      */
@@ -73,75 +59,86 @@ public class EEPropertiesLoadDefinition {
 
     }
 
-
-
     /**
-     * Convenience method to create and register an entry from an absolute path
-     *
-     * @param absolutePath Absolute path for definition
-     * @return new entry instance
+     * <p>Create and register a load definition</p> 
+     * 
+     * <p>Uses the same parameters as EEProperties.loadAndMergeConfigurations.</p>
+     * 
+     * @param environmentNames
+     * @param klass
+     * @param properties
+     * @param options
      */
-    public static EEPropertiesLoadDefinition createFromAbsolutePath(String absolutePath) {
-        EEPropertiesLoadDefinition newInstance = new EEPropertiesLoadDefinition();
-        newInstance.setEntryType(DEFINITION_TYPE_ABSOLUTE_PATH);
-        newInstance.setEntryName(absolutePath);
-        newInstance.setEntryPath(absolutePath);
-        EEPropertiesLoadDefinition.registerEntry(newInstance);
-        return newInstance;
+    public static void createAndRegisterLoadDefinition(ArrayList<String> environmentNames,Class klass, Properties properties,HashMap<String,String> options) {
+
+    	EEPropertiesLoadDefinition loadDefinition = new EEPropertiesLoadDefinition();
+    	
+    	// Have to duplicate everything
+
+    	ArrayList<String> duplicatedEnvironmentNames = new ArrayList<String>();
+    	for (String environmentString : environmentNames) {
+    		duplicatedEnvironmentNames.add(new String(environmentString));
+    	}
+    	loadDefinition.setEnvironmentNames(duplicatedEnvironmentNames);
+    	loadDefinition.setClassContext(klass);
+    	
+    	Properties duplicatedProperties = new Properties();
+    	for (Enumeration<?> e = properties.propertyNames() ; e.hasMoreElements();) {
+    		String elementName = (String) e.nextElement();
+    		if (elementName != null) {
+    			if (properties.getProperty(elementName) != null) {
+    				String elementValue = (String) properties.getProperty(elementName);
+    				duplicatedProperties.put(new String(elementName), new String(elementValue));
+    			}
+    		}
+    	 }
+    	loadDefinition.setProperties(duplicatedProperties);     	
+    	
+    	HashMap<String,String> duplicatedOptions = new HashMap<String,String>();
+    	for (String key : options.keySet() ) {
+    		String value = options.get(key);
+    		if (value != null) {
+    			duplicatedOptions.put(new String(key), new String(value));
+    		}
+    	}
+    	loadDefinition.setOptions(duplicatedOptions);
+    	
+    	EEPropertiesLoadDefinition.registerEntry(loadDefinition);
     }
 
-
-    /**
-     * Convenience method to create and register an entry from an absolute path
-     *
-     * @param definitionName Definition Name
-     * @param absolutePath Absolute path for definition
-     * @return new entry instance
-     */
-    public static EEPropertiesLoadDefinition createFromAbsolutePath(String definitionName, String absolutePath) {
-        EEPropertiesLoadDefinition newInstance = new EEPropertiesLoadDefinition();
-        newInstance.setEntryType(DEFINITION_TYPE_ABSOLUTE_PATH);
-        newInstance.setEntryName(definitionName);
-        newInstance.setEntryPath(absolutePath);
-        EEPropertiesLoadDefinition.registerEntry(newInstance);
-        return newInstance;
+    public void setEnvironmentNames(ArrayList<String> environmentNames) {
+    	this.environmentNames = environmentNames;
+    }
+    
+    public ArrayList<String> getEnvironmentNames() {
+    	return this.environmentNames;
+    	
     }
 
-    /**
-     * Convenience method to create and register an entry that is class relative
-     *
-     * @param klass Class
-     * @param fileName File Name
-     * @return new entry instance
-     */
-    public static EEPropertiesLoadDefinition createFromClass(Class klass, String fileName) {
-        EEPropertiesLoadDefinition newInstance = new EEPropertiesLoadDefinition();
-        newInstance.setEntryType(DEFINITION_TYPE_CLASS_RELATIVE);
-        newInstance.setEntryName(klass.getName());
-        newInstance.setEntryPath(fileName);
-        newInstance.setEntryClass(klass);
-        EEPropertiesLoadDefinition.registerEntry(newInstance);
-        return newInstance;
+    public void setClassContext(Class klass) {
+    	this.klass = klass;
     }
-
-    /**
-     * Convenience method to create and register an entry that is class relative
-     *
-     * @param klass Class
-     * @param fileName File Name
-     * @return new entry instance
-     */
-    public static EEPropertiesLoadDefinition createFromClass(String definitionName, Class klass, String fileName) {
-        EEPropertiesLoadDefinition newInstance = new EEPropertiesLoadDefinition();
-        newInstance.setEntryType(DEFINITION_TYPE_CLASS_RELATIVE);
-        newInstance.setEntryName(definitionName);
-        newInstance.setEntryPath(fileName);
-        newInstance.setEntryClass(klass);
-        EEPropertiesLoadDefinition.registerEntry(newInstance);
-        return newInstance;
+    
+    public Class getClassContext() {
+    	return this.klass;
     }
-
-
+    
+    public void setProperties(Properties properties) {
+    	this.properties = properties;
+    }
+    
+    public Properties getProperties() {
+    	return this.properties;
+    }
+    
+    public void setOptions(HashMap<String,String> options) {
+    	this.options = options;
+    }
+    
+    public HashMap<String,String> getOptions() {
+    	return this.options;
+    }
+    
     /**
      * Register a definition
      *
@@ -174,35 +171,4 @@ public class EEPropertiesLoadDefinition {
         EEPropertiesLoadDefinition.REGISTERED_ENTRIES = new  ArrayList<EEPropertiesLoadDefinition>();
     }
 
-    public String getEntryName() {
-        return entryName;
-    }
-
-    public void setEntryName(String entryName) {
-        this.entryName = entryName;
-    }
-
-    public Integer getEntryType() {
-        return entryType;
-    }
-
-    public void setEntryType(Integer entryType) {
-        this.entryType = entryType;
-    }
-
-    public String getEntryPath() {
-        return entryPath;
-    }
-
-    public void setEntryPath(String entryPath) {
-        this.entryPath = entryPath;
-    }
-
-    public Class getEntryClass() {
-        return entryClass;
-    }
-
-    public void setEntryClass(Class entryClass) {
-        this.entryClass = entryClass;
-    }
 }
